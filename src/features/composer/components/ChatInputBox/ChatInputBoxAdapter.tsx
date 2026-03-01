@@ -77,7 +77,7 @@ export interface ChatInputBoxAdapterProps {
   canStop: boolean;
 
   // Callbacks
-  onSend: () => void;
+  onSend: (submittedImages?: string[]) => void;
   onStop: () => void;
   onTextChange: (text: string, selectionStart: number | null) => void;
 
@@ -174,6 +174,46 @@ function guessMediaType(path: string): string {
     svg: 'image/svg+xml',
   };
   return map[ext] || 'image/png';
+}
+
+function isHostAbsolutePath(value: string): boolean {
+  return (
+    value.startsWith('/') ||
+    value.startsWith('\\\\') ||
+    /^[A-Za-z]:[\\/]/.test(value)
+  );
+}
+
+function attachmentToImageInput(attachment: Attachment): string | null {
+  if (!attachment.mediaType.startsWith('image/')) {
+    return null;
+  }
+  const payload = attachment.data.trim();
+  if (!payload) {
+    return null;
+  }
+  if (
+    payload.startsWith('data:') ||
+    payload.startsWith('http://') ||
+    payload.startsWith('https://') ||
+    isHostAbsolutePath(payload)
+  ) {
+    return payload;
+  }
+  return `data:${attachment.mediaType};base64,${payload}`;
+}
+
+function attachmentsToImageInputs(attachments?: Attachment[]): string[] | undefined {
+  if (!attachments || attachments.length === 0) {
+    return undefined;
+  }
+  const mapped = attachments
+    .map(attachmentToImageInput)
+    .filter((entry): entry is string => Boolean(entry));
+  if (mapped.length === 0) {
+    return undefined;
+  }
+  return Array.from(new Set(mapped));
 }
 
 /**
@@ -363,8 +403,8 @@ export const ChatInputBoxAdapter = forwardRef<ChatInputBoxHandle, ChatInputBoxAd
     }, [onTextChange]);
 
     // Handle submit from ChatInputBox
-    const handleSubmit = useCallback((_content: string, _attachments?: Attachment[]) => {
-      onSend();
+    const handleSubmit = useCallback((_content: string, submittedAttachments?: Attachment[]) => {
+      onSend(attachmentsToImageInputs(submittedAttachments));
     }, [onSend]);
 
     // Handle attachment removal (convert Attachment id back to path)

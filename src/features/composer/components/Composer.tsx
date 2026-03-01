@@ -921,7 +921,7 @@ export const Composer = memo(function Composer({
     });
   }, [onRewind, t]);
 
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback((submittedImages?: string[]) => {
     if (disabled) {
       return;
     }
@@ -933,7 +933,11 @@ export const Composer = memo(function Composer({
       return;
     }
     const trimmed = text.trim();
-    if (!trimmed && attachedImages.length === 0 && !selectedOpenCodeDirectCommand) {
+    // Merge images from Composer state (file picker) and ChatInputBox (paste/drop)
+    const mergedImages = Array.from(
+      new Set([...attachedImages, ...(submittedImages ?? [])]),
+    );
+    if (!trimmed && mergedImages.length === 0 && !selectedOpenCodeDirectCommand) {
       return;
     }
     if (selectedOpenCodeDirectCommand) {
@@ -977,7 +981,7 @@ export const Composer = memo(function Composer({
       selectedMemoryIds.length > 0
         ? { selectedMemoryIds, selectedMemoryInjectionMode }
         : undefined;
-    const sendResult = onSend(resolvedFinalText, attachedImages, sendOptions);
+    const sendResult = onSend(resolvedFinalText, mergedImages, sendOptions);
     void Promise.resolve(sendResult).finally(() => {
       setSelectedManualMemories([]);
       setSelectedInlineFileReferences([]);

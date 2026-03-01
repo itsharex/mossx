@@ -19,17 +19,15 @@ export const ModeSelect = ({ value, onChange, provider }: ModeSelectProps) => {
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const modeOptions = useMemo(() => {
-    if (provider === 'codex') {
-      // Codex only has three modes: default, agent, auto (filter out plan mode)
-      return AVAILABLE_MODES.filter((mode) => mode.id !== 'plan').map((mode) => {
-        if (mode.id === 'default' || mode.id === 'acceptEdits') {
-          return { ...mode, disabled: true };
-        }
-        return mode;
-      });
-    }
-    return AVAILABLE_MODES;
-  }, [provider]);
+    // Only allow bypassPermissions (Auto Mode) to be selectable
+    // Disable all other modes (default, plan, acceptEdits)
+    return AVAILABLE_MODES.map((mode) => {
+      if (mode.id !== 'bypassPermissions') {
+        return { ...mode, disabled: true };
+      }
+      return mode;
+    });
+  }, []);
 
   const currentMode = modeOptions.find(m => m.id === value) || modeOptions[0];
 

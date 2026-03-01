@@ -332,8 +332,8 @@ function MainApp() {
     clearDebugEntries,
   } = useDebugLog();
   useLiquidGlassEffect({ reduceTransparency, onDebug: addDebugEntry });
-  const [accessMode, setAccessMode] = useState<AccessMode>("current");
-  const claudeAccessModeRef = useRef<AccessMode>("current");
+  const [accessMode, setAccessMode] = useState<AccessMode>("full-access");
+  const claudeAccessModeRef = useRef<AccessMode>("full-access");
   const [activeTab, setActiveTab] = useState<
     "projects" | "codex" | "spec" | "git" | "log"
   >("codex");
@@ -518,11 +518,11 @@ function MainApp() {
 
   const { errorToasts, dismissErrorToast } = useErrorToasts();
 
+  // Force accessMode to "full-access" (Auto Mode)
+  // Other modes are temporarily disabled in ModeSelect component
   useEffect(() => {
-    setAccessMode((prev) =>
-      prev === "current" ? appSettings.defaultAccessMode : prev
-    );
-  }, [appSettings.defaultAccessMode]);
+    setAccessMode("full-access");
+  }, []);
 
   const {
     gitIssues,
