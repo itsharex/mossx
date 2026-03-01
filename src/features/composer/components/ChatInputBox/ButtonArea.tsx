@@ -74,7 +74,6 @@ export const ButtonArea = ({
   disabled = false,
   hasInputContent = false,
   isLoading = false,
-  isEnhancing = false,
   selectedModel = 'claude-sonnet-4-6',
   permissionMode = 'bypassPermissions',
   currentProvider = 'claude',
@@ -87,7 +86,6 @@ export const ButtonArea = ({
   onModelSelect,
   onProviderSelect,
   onReasoningChange,
-  onEnhancePrompt,
   alwaysThinkingEnabled = false,
   onToggleThinking,
   streamingEnabled = true,
@@ -220,14 +218,6 @@ export const ButtonArea = ({
   const handleProviderSelect = useCallback((providerId: string) => {
     onProviderSelect?.(providerId);
   }, [onProviderSelect]);
-
-  /**
-   * Handle enhance prompt button click
-   */
-  const handleEnhanceClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    onEnhancePrompt?.();
-  }, [onEnhancePrompt]);
 
   return (
     <div className="button-area" data-provider={currentProvider}>

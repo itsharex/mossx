@@ -140,6 +140,26 @@ const LEGACY_MEMORY_RECORD_HINT_REGEX =
 const PROJECT_MEMORY_XML_PREFIX_REGEX =
   /^<project-memory\b[^>]*>([\s\S]*?)<\/project-memory>\s*/i;
 const CODE_MODE_FALLBACK_MARKER_REGEX = /User request\s*:\s*/i;
+const MESSAGES_PERF_DEBUG_FLAG_KEY = "mossx.debug.messages.perf";
+const MESSAGES_SLOW_RENDER_WARN_MS = 18;
+const MESSAGES_SLOW_ANCHOR_WARN_MS = 8;
+
+function isMessagesPerfDebugEnabled(): boolean {
+  if (!import.meta.env.DEV) {
+    return false;
+  }
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return window.localStorage.getItem(MESSAGES_PERF_DEBUG_FLAG_KEY) === "1";
+}
+
+function logMessagesPerf(label: string, payload: Record<string, unknown>): void {
+  if (!isMessagesPerfDebugEnabled()) {
+    return;
+  }
+  console.info(`[messages][perf] ${label}`, payload);
+}
 
 function normalizeCollaborationModeId(
   value: unknown,
@@ -1302,10 +1322,22 @@ export const Messages = memo(function Messages({
   const heartbeatPulse = conversationState
     ? (effectiveState.meta.heartbeatPulse ?? legacyHeartbeatPulse ?? 0)
     : legacyHeartbeatPulse ?? 0;
+  const renderStartedAt =
+    typeof performance === "undefined" ? 0 : performance.now();
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const messageNodeByIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const autoScrollRef = useRef(true);
+  const anchorUpdateRafRef = useRef<number | null>(null);
+  const lastRenderSnapshotRef = useRef<{
+    items: ConversationItem[];
+    userInputRequests: RequestUserInputRequest[];
+    conversationState: ConversationState | null;
+    presentationProfile: PresentationProfile | null;
+    isThinking: boolean;
+    heartbeatPulse: number;
+    threadId: string | null;
+  } | null>(null);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [activeAnchorId, setActiveAnchorId] = useState<string | null>(null);
@@ -1382,15 +1414,6 @@ export const Messages = memo(function Messages({
     }
     return bestId;
   }, []);
-
-  const updateAutoScroll = useCallback(() => {
-    if (!containerRef.current) {
-      return;
-    }
-    autoScrollRef.current = isNearBottom(containerRef.current);
-    const nextActiveAnchor = computeActiveAnchor();
-    setActiveAnchorId((previous) => (previous === nextActiveAnchor ? previous : nextActiveAnchor));
-  }, [computeActiveAnchor, isNearBottom]);
 
   const requestAutoScroll = useCallback(() => {
     if (!bottomRef.current) {
@@ -1604,11 +1627,113 @@ export const Messages = memo(function Messages({
     });
   }, [visibleItems]);
   const hasAnchorRail = showMessageAnchors && messageAnchors.length > 1;
+  const scheduleAnchorUpdate = useCallback(
+    (reason: "scroll" | "sync") => {
+      if (!hasAnchorRail) {
+        return;
+      }
+      if (anchorUpdateRafRef.current !== null) {
+        return;
+      }
+      anchorUpdateRafRef.current = window.requestAnimationFrame(() => {
+        anchorUpdateRafRef.current = null;
+        const anchorStartedAt =
+          typeof performance === "undefined" ? 0 : performance.now();
+        const nextActiveAnchor =
+          computeActiveAnchor() ?? messageAnchors[messageAnchors.length - 1]?.id ?? null;
+        const elapsedMs =
+          typeof performance === "undefined"
+            ? 0
+            : performance.now() - anchorStartedAt;
+        if (elapsedMs >= MESSAGES_SLOW_ANCHOR_WARN_MS) {
+          logMessagesPerf("anchor.compute", {
+            ms: Number(elapsedMs.toFixed(2)),
+            reason,
+            anchorCount: messageAnchors.length,
+            threadId,
+          });
+        }
+        setActiveAnchorId((previous) =>
+          previous === nextActiveAnchor ? previous : nextActiveAnchor,
+        );
+      });
+    },
+    [computeActiveAnchor, hasAnchorRail, messageAnchors, threadId],
+  );
+  const updateAutoScroll = useCallback(() => {
+    if (!containerRef.current) {
+      return;
+    }
+    autoScrollRef.current = isNearBottom(containerRef.current);
+    scheduleAnchorUpdate("scroll");
+  }, [isNearBottom, scheduleAnchorUpdate]);
+
+  useEffect(() => {
+    if (!isMessagesPerfDebugEnabled()) {
+      return;
+    }
+    const renderCostMs =
+      typeof performance === "undefined"
+        ? 0
+        : performance.now() - renderStartedAt;
+    const previous = lastRenderSnapshotRef.current;
+    const changedKeys: string[] = [];
+    if (previous) {
+      if (previous.items !== items) {
+        changedKeys.push("items");
+      }
+      if (previous.userInputRequests !== userInputRequests) {
+        changedKeys.push("userInputRequests");
+      }
+      if (previous.conversationState !== conversationState) {
+        changedKeys.push("conversationState");
+      }
+      if (previous.presentationProfile !== presentationProfile) {
+        changedKeys.push("presentationProfile");
+      }
+      if (previous.isThinking !== isThinking) {
+        changedKeys.push("isThinking");
+      }
+      if (previous.heartbeatPulse !== heartbeatPulse) {
+        changedKeys.push("heartbeatPulse");
+      }
+      if (previous.threadId !== threadId) {
+        changedKeys.push("threadId");
+      }
+    }
+    if (
+      renderCostMs >= MESSAGES_SLOW_RENDER_WARN_MS ||
+      changedKeys.includes("conversationState") ||
+      changedKeys.includes("presentationProfile")
+    ) {
+      logMessagesPerf("render", {
+        ms: Number(renderCostMs.toFixed(2)),
+        items: items.length,
+        visibleItems: visibleItems.length,
+        anchors: messageAnchors.length,
+        threadId,
+        changed: changedKeys,
+      });
+    }
+    lastRenderSnapshotRef.current = {
+      items,
+      userInputRequests,
+      conversationState,
+      presentationProfile,
+      isThinking,
+      heartbeatPulse,
+      threadId,
+    };
+  });
 
   useEffect(() => {
     return () => {
       if (copyTimeoutRef.current) {
         window.clearTimeout(copyTimeoutRef.current);
+      }
+      if (anchorUpdateRafRef.current !== null) {
+        window.cancelAnimationFrame(anchorUpdateRafRef.current);
+        anchorUpdateRafRef.current = null;
       }
       if (planPanelFocusRafRef.current !== null) {
         window.cancelAnimationFrame(planPanelFocusRafRef.current);
@@ -1625,18 +1750,15 @@ export const Messages = memo(function Messages({
 
   useEffect(() => {
     if (!hasAnchorRail) {
+      if (anchorUpdateRafRef.current !== null) {
+        window.cancelAnimationFrame(anchorUpdateRafRef.current);
+        anchorUpdateRafRef.current = null;
+      }
       setActiveAnchorId(null);
       return;
     }
-    const rafId = window.requestAnimationFrame(() => {
-      const nextActiveAnchor =
-        computeActiveAnchor() ?? messageAnchors[messageAnchors.length - 1]?.id ?? null;
-      setActiveAnchorId((previous) => (previous === nextActiveAnchor ? previous : nextActiveAnchor));
-    });
-    return () => {
-      window.cancelAnimationFrame(rafId);
-    };
-  }, [computeActiveAnchor, hasAnchorRail, messageAnchors, scrollKey, threadId]);
+    scheduleAnchorUpdate("sync");
+  }, [hasAnchorRail, messageAnchors, scheduleAnchorUpdate, scrollKey, threadId]);
 
   const handleCopyMessage = useCallback(
     async (item: Extract<ConversationItem, { kind: "message" }>) => {

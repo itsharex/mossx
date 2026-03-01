@@ -1,4 +1,4 @@
-import type { DragEvent, MouseEvent, ReactNode, RefObject } from "react";
+import { useCallback, useMemo, type DragEvent, type MouseEvent, type ReactNode, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import ArrowLeft from "lucide-react/dist/esm/icons/arrow-left";
 import { Sidebar } from "../../app/components/Sidebar";
@@ -587,6 +587,63 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
   const activeThreadStatus = options.activeThreadId
     ? options.threadStatusById[options.activeThreadId] ?? null
     : null;
+  const isThreadThinking = activeThreadStatus?.isProcessing ?? false;
+  const conversationEngine = useMemo(
+    () => toConversationEngine(options.selectedEngine),
+    [options.selectedEngine],
+  );
+  const conversationState = useMemo<ConversationState>(
+    () => ({
+      items: options.activeItems,
+      plan: options.plan,
+      userInputQueue: options.userInputRequests,
+      meta: {
+        workspaceId: options.activeWorkspace?.id ?? "",
+        threadId: options.activeThreadId ?? "",
+        engine: conversationEngine,
+        activeTurnId: null,
+        isThinking: activeThreadStatus?.isProcessing ?? false,
+        heartbeatPulse: activeThreadStatus?.heartbeatPulse ?? null,
+        historyRestoredAtMs: null,
+      },
+    }),
+    [
+      options.activeItems,
+      options.plan,
+      options.userInputRequests,
+      options.activeWorkspace?.id,
+      options.activeThreadId,
+      conversationEngine,
+      activeThreadStatus?.isProcessing,
+      activeThreadStatus?.heartbeatPulse,
+    ],
+  );
+  const presentationProfile = useMemo(
+    () =>
+      options.usePresentationProfile
+        ? resolvePresentationProfile(conversationEngine)
+        : null,
+    [options.usePresentationProfile, conversationEngine],
+  );
+  const activeWorkspacePath = options.activeWorkspace?.path ?? null;
+  const gitDiffItems = options.gitDiffs;
+  const onGitDiffListViewChange = options.onGitDiffListViewChange;
+  const onSelectDiff = options.onSelectDiff;
+  const handleOpenDiffPath = useCallback(
+    (path: string) => {
+      const availablePaths = gitDiffItems.map((entry) =>
+        normalizeDiffPath(entry.path),
+      );
+      const resolvedPath = resolveDiffPathFromToolPath(
+        path,
+        availablePaths,
+        activeWorkspacePath,
+      );
+      onGitDiffListViewChange("tree");
+      onSelectDiff(resolvedPath);
+    },
+    [gitDiffItems, activeWorkspacePath, onGitDiffListViewChange, onSelectDiff],
+  );
 
   const sidebarNode = (
     <Sidebar
@@ -653,38 +710,7 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
     />
   );
 
-  const messagesNode = (
-    (() => {
-      const handleOpenDiffPath = (path: string) => {
-        const availablePaths = options.gitDiffs.map((entry) => normalizeDiffPath(entry.path));
-        const resolvedPath = resolveDiffPathFromToolPath(
-          path,
-          availablePaths,
-          options.activeWorkspace?.path ?? null,
-        );
-        options.onGitDiffListViewChange("tree");
-        options.onSelectDiff(resolvedPath);
-      };
-      const conversationEngine = toConversationEngine(options.selectedEngine);
-      const conversationState: ConversationState = {
-        items: options.activeItems,
-        plan: options.plan,
-        userInputQueue: options.userInputRequests,
-        meta: {
-          workspaceId: options.activeWorkspace?.id ?? "",
-          threadId: options.activeThreadId ?? "",
-          engine: conversationEngine,
-          activeTurnId: null,
-          isThinking: activeThreadStatus?.isProcessing ?? false,
-          heartbeatPulse: activeThreadStatus?.heartbeatPulse ?? null,
-          historyRestoredAtMs: null,
-        },
-      };
-      const presentationProfile = options.usePresentationProfile
-        ? resolvePresentationProfile(conversationEngine)
-        : null;
-
-      return (
+  const messagesNode = useMemo(() => (
     <Messages
       items={options.activeItems}
       threadId={options.activeThreadId ?? null}
@@ -706,17 +732,37 @@ export function useLayoutNodes(options: LayoutNodesOptions): LayoutNodesResult {
       onOpenDiffPath={handleOpenDiffPath}
       onOpenPlanPanel={options.onOpenPlanPanel}
       onOpenWorkspaceFile={options.onOpenFile}
-      isThinking={
-        options.activeThreadId
-          ? options.threadStatusById[options.activeThreadId]?.isProcessing ?? false
-          : false
-      }
+      isThinking={isThreadThinking}
       processingStartedAt={activeThreadStatus?.processingStartedAt ?? null}
       lastDurationMs={activeThreadStatus?.lastDurationMs ?? null}
       heartbeatPulse={activeThreadStatus?.heartbeatPulse ?? 0}
     />
-      );
-    })()
+  ), [
+    options.activeItems,
+    options.activeThreadId,
+    options.activeWorkspace?.id,
+    options.activeWorkspace?.path,
+    options.openAppTargets,
+    options.selectedOpenAppId,
+    options.showMessageAnchors,
+    options.codeBlockCopyUseModifier,
+    options.userInputRequests,
+    options.handleUserInputSubmit,
+    conversationState,
+    presentationProfile,
+    options.selectedEngine,
+    options.selectedCollaborationModeId,
+    options.plan,
+    options.isPlanMode,
+    options.isProcessing,
+    handleOpenDiffPath,
+    options.onOpenPlanPanel,
+    options.onOpenFile,
+    isThreadThinking,
+    activeThreadStatus?.processingStartedAt,
+    activeThreadStatus?.lastDurationMs,
+    activeThreadStatus?.heartbeatPulse,
+  ]
   );
 
   const composerNode = options.showComposer ? (
