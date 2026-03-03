@@ -205,6 +205,29 @@ const APP_JANK_DEBUG_FLAG_KEY = "mossx.debug.jank";
 const LOCAL_PLAN_APPLY_REQUEST_PREFIX = "mossx-plan-apply:";
 const PLAN_APPLY_ACTION_QUESTION_ID = "plan_apply_action";
 const PLAN_APPLY_EXECUTE_PROMPT = "Implement this plan.";
+const CODE_MODE_RESUME_PROMPT =
+  "I switched to code mode. Continue from the latest context and execute directly.";
+
+function extractFirstUserInputAnswer(response: RequestUserInputResponse): string | null {
+  const entries = Object.values(response.answers ?? {});
+  for (const entry of entries) {
+    for (const answer of entry?.answers ?? []) {
+      const normalized = String(answer ?? "").trim();
+      if (!normalized) {
+        continue;
+      }
+      if (normalized.toLowerCase().startsWith("user_note:")) {
+        const note = normalized.slice("user_note:".length).trim();
+        if (note) {
+          return note;
+        }
+        continue;
+      }
+      return normalized;
+    }
+  }
+  return null;
+}
 
 type ThreadCompletionTracker = {
   isProcessing: boolean;
@@ -1406,9 +1429,40 @@ function MainApp() {
       request: RequestUserInputRequest,
       response: RequestUserInputResponse,
     ) => {
+      const requestThreadId = String(request.params.thread_id ?? "").trim();
+      const runtimeMode = requestThreadId
+        ? resolveCollaborationRuntimeMode(requestThreadId)
+        : null;
+      const uiMode = requestThreadId
+        ? (resolveCollaborationUiMode(requestThreadId) ??
+          (selectedCollaborationModeId === "plan" ? "plan" : "code"))
+        : (selectedCollaborationModeId === "plan" ? "plan" : "code");
+      const shouldForceResumeInCode =
+        activeEngine === "codex" &&
+        runtimeMode === "plan" &&
+        uiMode === "code";
       await handleUserInputSubmit(request, response);
       const requestId = String(request.request_id ?? "");
       if (!requestId.startsWith(LOCAL_PLAN_APPLY_REQUEST_PREFIX)) {
+        if (!shouldForceResumeInCode) {
+          return;
+        }
+        applySelectedCollaborationMode("code");
+        await interruptTurn();
+        const firstAnswer = extractFirstUserInputAnswer(response);
+        const resumePrompt = firstAnswer
+          ? `${CODE_MODE_RESUME_PROMPT}\n\nUser confirmation: ${firstAnswer}`
+          : CODE_MODE_RESUME_PROMPT;
+        const immediateCodeModePayload: Record<string, unknown> = {
+          mode: "code",
+          settings: {
+            model: resolvedModel ?? null,
+            reasoning_effort: resolvedEffort ?? null,
+          },
+        };
+        await sendUserMessage(resumePrompt, [], {
+          collaborationMode: immediateCodeModePayload,
+        });
         return;
       }
       const selectedAnswer = String(
@@ -1434,10 +1488,15 @@ function MainApp() {
       });
     },
     [
+      activeEngine,
       applySelectedCollaborationMode,
       handleUserInputSubmit,
+      interruptTurn,
+      resolveCollaborationRuntimeMode,
+      resolveCollaborationUiMode,
       resolvedEffort,
       resolvedModel,
+      selectedCollaborationModeId,
       sendUserMessage,
     ],
   );

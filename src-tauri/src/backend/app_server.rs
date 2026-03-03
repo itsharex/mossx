@@ -171,6 +171,9 @@ fn is_repo_mutating_command_tokens(tokens: &[String]) -> bool {
 
 fn detect_repo_mutating_blocked_method(value: &Value) -> Option<String> {
     let method = extract_event_method(value)?;
+    if method.starts_with("item/") && method.ends_with("/requestApproval") {
+        return Some(method.to_string());
+    }
     if method != "item/started" && method != "item/updated" {
         return None;
     }
@@ -990,6 +993,11 @@ impl WorkspaceSession {
             blocked_method,
             MODE_BLOCKED_REASON_CODE_PLAN_READONLY
         );
+        {
+            let mut states = self.plan_turn_state.lock().await;
+            let state = states.entry(thread_id.clone()).or_default();
+            state.synthetic_block_active = true;
+        }
         Some(build_mode_blocked_event(
             &thread_id,
             &blocked_method,
@@ -1815,9 +1823,12 @@ pub(crate) async fn spawn_workspace_session<E: EventSink>(
             {
                 value = blocked_event;
             }
-            let synthetic_mode_block_event = session_clone
+            if let Some(blocked_event) = session_clone
                 .intercept_plan_repo_mutation_if_needed(&value)
-                .await;
+                .await
+            {
+                value = blocked_event;
+            }
             session_clone.track_plan_turn_state(&value).await;
             let synthetic_plan_event = session_clone
                 .maybe_emit_plan_blocker_user_input(&value)
@@ -1899,24 +1910,6 @@ pub(crate) async fn spawn_workspace_session<E: EventSink>(
                 }
             }
 
-            if let Some(extra_event) = synthetic_mode_block_event {
-                let extra_thread_id = extract_thread_id(&extra_event);
-                let mut sent_to_background = false;
-                if let Some(ref tid) = extra_thread_id {
-                    let callbacks = session_clone.background_thread_callbacks.lock().await;
-                    if let Some(tx) = callbacks.get(tid) {
-                        let _ = tx.send(extra_event.clone());
-                        sent_to_background = true;
-                    }
-                }
-                if !sent_to_background {
-                    let payload = AppServerEvent {
-                        workspace_id: workspace_id.clone(),
-                        message: extra_event,
-                    };
-                    event_sink_clone.emit_app_server_event(payload);
-                }
-            }
             if let Some(extra_event) = synthetic_plan_event {
                 let extra_thread_id = extract_thread_id(&extra_event);
                 let mut sent_to_background = false;
@@ -2253,6 +2246,33 @@ mod tests {
             }
         });
         assert_eq!(detect_repo_mutating_blocked_method(&read_only_event), None);
+    }
+
+    #[test]
+    fn detect_repo_mutating_blocked_method_detects_item_request_approval_events() {
+        let file_change_approval_event = json!({
+            "method": "item/fileChange/requestApproval",
+            "id": "req-1",
+            "params": {
+                "threadId": "thread-1"
+            }
+        });
+        assert_eq!(
+            detect_repo_mutating_blocked_method(&file_change_approval_event),
+            Some("item/fileChange/requestApproval".to_string())
+        );
+
+        let command_approval_event = json!({
+            "method": "item/commandExecution/requestApproval",
+            "id": "req-2",
+            "params": {
+                "threadId": "thread-1"
+            }
+        });
+        assert_eq!(
+            detect_repo_mutating_blocked_method(&command_approval_event),
+            Some("item/commandExecution/requestApproval".to_string())
+        );
     }
 
     #[test]
