@@ -948,6 +948,8 @@ const en = {
     opencodeHeartbeatHint3: "Merging subtask outputs into a readable response.",
     opencodeHeartbeatHint4: "Validating key steps before returning the answer.",
     opencodeHeartbeatHint5: "Still requesting response data. Please wait...",
+    opencodeModelSwitchTitle: "OpenCode Notice",
+    opencodeModelSwitchMessage: "Model switch detected in the same session. A new backend session has been created to avoid timeouts.",
     doneIn: "Done in {{duration}}",
     copyMessage: "Copy message",
     memoryContextSummary: "Memory context summary",

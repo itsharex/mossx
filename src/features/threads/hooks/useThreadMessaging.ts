@@ -625,8 +625,8 @@ export function useThreadMessaging({
           prevModel !== normalizedModel
         ) {
           pushErrorToast({
-            title: "OpenCode 提示",
-            message: "检测到同会话切换模型，已自动新建后端会话以避免超时。",
+            title: t("messages.opencodeModelSwitchTitle"),
+            message: t("messages.opencodeModelSwitchMessage"),
             durationMs: 3200,
           });
         }
@@ -645,10 +645,12 @@ export function useThreadMessaging({
             model: resolvedModel,
           },
         });
-        console.warn("[model/sanitize]", {
-          reason: "non-claude-model",
-          model: resolvedModel,
-        });
+        if (import.meta.env.DEV) {
+          console.warn("[model/sanitize]", {
+            reason: "non-claude-model",
+            model: resolvedModel,
+          });
+        }
       }
       if (
         resolvedEngine === "opencode" &&
@@ -721,19 +723,21 @@ export function useThreadMessaging({
           variant: resolvedOpenCodeVariant,
         },
       });
-      console.info("[turn/start]", {
-        workspaceId: workspace.id,
-        threadId,
-        engine: resolvedEngine,
-        selectedEngine: activeEngine,
-        model: modelForSend,
-        effort: resolvedEffort,
-        accessMode: resolvedAccessMode ?? null,
-        agent: resolvedOpenCodeAgent,
-        variant: resolvedOpenCodeVariant,
-        textLength: finalText.length,
-        hasImages: images.length > 0,
-      });
+      if (import.meta.env.DEV) {
+        console.info("[turn/start]", {
+          workspaceId: workspace.id,
+          threadId,
+          engine: resolvedEngine,
+          selectedEngine: activeEngine,
+          model: modelForSend,
+          effort: resolvedEffort,
+          accessMode: resolvedAccessMode ?? null,
+          agent: resolvedOpenCodeAgent,
+          variant: resolvedOpenCodeVariant,
+          textLength: finalText.length,
+          hasImages: images.length > 0,
+        });
+      }
       try {
         let response: Record<string, unknown>;
 
@@ -998,9 +1002,11 @@ export function useThreadMessaging({
               engine: resolvedEngine,
             });
           })
-          .catch((err) =>
-            console.warn("[project-memory] auto capture failed:", err),
-          );
+          .catch((err) => {
+            if (import.meta.env.DEV) {
+              console.warn("[project-memory] auto capture failed:", err);
+            }
+          });
 
         if (!cliEngine && autoNameThread && !getCustomName(workspace.id, threadId)) {
           onDebug?.({
@@ -1059,6 +1065,7 @@ export function useThreadMessaging({
       safeMessageActivity,
       setActiveTurnId,
       autoNameThread,
+      i18n,
       steerEnabled,
       t,
       threadStatusById,

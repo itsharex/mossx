@@ -731,14 +731,12 @@ export function useAppServerEvents(
 
       // Handle Codex token_count events (Codex sends usage data this way)
       // Format: {"method":"token_count","params":{"info":{"total_token_usage":{...}}}}
-      // 奶奶请看：这里是处理 Codex "报告信"的地方
       if (method === "token_count") {
         const params = message.params as Record<string, unknown>;
         const info = params.info as Record<string, unknown> | undefined;
         let threadId = String(params.threadId ?? params.thread_id ?? "");
 
-        // 如果事件中没有 threadId，尝试从当前活动的 Codex thread 获取
-        // 这就像收件室帮忙查找"当前正在使用的房间号"
+        // If no threadId in event, try to resolve from the active Codex thread
         if (!threadId && handlers.getActiveCodexThreadId) {
           const activeThreadId = handlers.getActiveCodexThreadId(workspace_id);
           if (activeThreadId) {
@@ -746,7 +744,7 @@ export function useAppServerEvents(
           }
         }
 
-        // 如果还是没有 threadId，就跳过这个事件（不再使用 "codex-default"）
+        // Skip this event if threadId is still unavailable
         if (!threadId) {
           return;
         }

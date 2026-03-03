@@ -194,6 +194,7 @@ const GitHubPanelData = lazy(() =>
   })),
 );
 
+// Non-security UI panel lock: decorative only, not for access control.
 const PANEL_LOCK_INITIAL_PASSWORD = "000000";
 const LOCK_LIVE_SESSION_LIMIT = 12;
 const LOCK_LIVE_PREVIEW_MAX = 180;

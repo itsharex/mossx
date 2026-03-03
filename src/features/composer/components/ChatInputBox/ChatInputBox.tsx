@@ -638,7 +638,6 @@ export const ChatInputBox = memo(forwardRef<ChatInputBoxHandle, ChatInputBoxProp
       getTextContent,
       invalidateCache,
       attachments,
-      isLoading,
       sdkStatusLoading,
       sdkInstalled,
       currentProvider,

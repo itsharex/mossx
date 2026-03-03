@@ -9,7 +9,6 @@ interface CompletionLike {
 export interface UseSubmitHandlerOptions {
   getTextContent: () => string;
   attachments: Attachment[];
-  isLoading: boolean;
   sdkStatusLoading: boolean;
   sdkInstalled: boolean;
   currentProvider: string;
@@ -43,7 +42,6 @@ export interface UseSubmitHandlerOptions {
 export function useSubmitHandler({
   getTextContent,
   attachments,
-  isLoading,
   sdkStatusLoading,
   sdkInstalled,
   currentProvider,
@@ -118,7 +116,6 @@ export function useSubmitHandler({
     getTextContent,
     invalidateCache,
     attachments,
-    isLoading,
     sdkStatusLoading,
     sdkInstalled,
     currentProvider,

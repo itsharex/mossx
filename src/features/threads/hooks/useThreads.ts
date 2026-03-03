@@ -1131,10 +1131,12 @@ export function useThreads({
             });
             return;
           } catch (updateErr) {
-            console.warn(
-              "[project-memory] merge update failed, falling back to create:",
-              { threadId: payload.threadId, memoryId: pending.memoryId, error: updateErr },
-            );
+            if (import.meta.env.DEV) {
+              console.warn(
+                "[project-memory] merge update failed, falling back to create:",
+                { threadId: payload.threadId, memoryId: pending.memoryId, error: updateErr },
+              );
+            }
             memoryDebugLog("merge update failed", {
               threadId: payload.threadId,
               memoryId: pending.memoryId,
@@ -1163,10 +1165,12 @@ export function useThreads({
             itemId: payload.itemId,
           });
         } catch (createErr) {
-          console.warn("[project-memory] merge create also failed:", {
-            threadId: payload.threadId,
-            error: createErr,
-          });
+          if (import.meta.env.DEV) {
+            console.warn("[project-memory] merge create also failed:", {
+              threadId: payload.threadId,
+              error: createErr,
+            });
+          }
           memoryDebugLog("merge create failed", {
             threadId: payload.threadId,
             error: createErr instanceof Error ? createErr.message : String(createErr),

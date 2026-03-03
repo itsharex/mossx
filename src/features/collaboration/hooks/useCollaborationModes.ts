@@ -59,7 +59,7 @@ export function useCollaborationModes({
       });
       const rawData = response.result?.data ?? response.data ?? [];
       const data: CollaborationModeOption[] = rawData
-        .map((item: any) => {
+        .map((item: Record<string, unknown>) => {
           if (!item || typeof item !== "object") {
             return null;
           }
@@ -74,18 +74,19 @@ export function useCollaborationModes({
             return null;
           }
 
-          const settings =
-            item.settings && typeof item.settings === "object"
-              ? item.settings
-              : {
-                  model: item.model ?? null,
-                  reasoning_effort:
-                    item.reasoning_effort ?? item.reasoningEffort ?? null,
-                  developer_instructions:
-                    item.developer_instructions ??
-                    item.developerInstructions ??
-                    null,
-                };
+          const rawSettings =
+            item.settings && typeof item.settings === "object" && !Array.isArray(item.settings)
+              ? (item.settings as Record<string, unknown>)
+              : null;
+          const settings = rawSettings ?? {
+            model: item.model ?? null,
+            reasoning_effort:
+              item.reasoning_effort ?? item.reasoningEffort ?? null,
+            developer_instructions:
+              item.developer_instructions ??
+              item.developerInstructions ??
+              null,
+          };
 
           const model = String(settings.model ?? "");
           const reasoningEffort = settings.reasoning_effort ?? null;

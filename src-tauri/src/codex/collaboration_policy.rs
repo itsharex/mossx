@@ -277,22 +277,50 @@ mod tests {
     };
     use serde_json::json;
 
-    fn with_profile_env<T>(
-        raw_profile: Option<&str>,
-        run: impl FnOnce() -> T,
-    ) -> T {
-        let key = "MOSSX_CODEX_COLLABORATION_PROFILE";
-        let previous = std::env::var(key).ok();
-        match raw_profile {
-            Some(value) => std::env::set_var(key, value),
-            None => std::env::remove_var(key),
+    fn resolve_policy_with_profile(
+        profile: CollaborationProfile,
+        payload: Option<&serde_json::Value>,
+        persisted_mode: Option<&str>,
+    ) -> CodexCollaborationPolicy {
+        let selected_mode = super::extract_selected_mode(payload);
+        let normalized_selected = super::normalize_mode(selected_mode.as_deref());
+        let normalized_persisted = super::normalize_mode(persisted_mode);
+
+        let (effective_mode, fallback_reason) =
+            match (normalized_selected, normalized_persisted) {
+                (Some(selected), _) => (selected, None),
+                (None, Some(persisted)) if selected_mode.is_some() => (
+                    persisted,
+                    Some("invalid_mode_in_request_using_thread_state".to_string()),
+                ),
+                (None, Some(persisted)) => (
+                    persisted,
+                    Some("missing_mode_in_request_using_thread_state".to_string()),
+                ),
+                (None, None) if selected_mode.is_some() => (
+                    super::DEFAULT_EFFECTIVE_MODE.to_string(),
+                    Some("invalid_mode_in_request_default_code".to_string()),
+                ),
+                (None, None) => (
+                    super::DEFAULT_EFFECTIVE_MODE.to_string(),
+                    Some("missing_mode_in_request_default_code".to_string()),
+                ),
+            };
+
+        let request_user_input_policy = match (profile, effective_mode.as_str()) {
+            (CollaborationProfile::StrictLocal, "code") => RequestUserInputPolicy::Block,
+            _ => RequestUserInputPolicy::Allow,
+        };
+
+        CodexCollaborationPolicy {
+            selected_mode,
+            effective_mode: effective_mode.clone(),
+            profile,
+            fallback_reason,
+            policy_version: COLLABORATION_POLICY_VERSION,
+            request_user_input_policy,
+            directives: build_policy_directives(profile, &effective_mode),
         }
-        let result = run();
-        match previous {
-            Some(value) => std::env::set_var(key, value),
-            None => std::env::remove_var(key),
-        }
-        result
     }
 
     #[test]
@@ -307,7 +335,11 @@ mod tests {
     #[test]
     fn resolve_policy_prefers_explicit_mode() {
         let payload = json!({ "mode": "code" });
-        let policy = with_profile_env(None, || resolve_policy(Some(&payload), Some("plan")));
+        let policy = resolve_policy_with_profile(
+            CollaborationProfile::OfficialCompatible,
+            Some(&payload),
+            Some("plan"),
+        );
         assert_eq!(policy.selected_mode, Some("code".to_string()));
         assert_eq!(policy.effective_mode, "code");
         assert_eq!(policy.fallback_reason, None);
@@ -321,7 +353,11 @@ mod tests {
     #[test]
     fn resolve_policy_falls_back_to_thread_mode_for_invalid_selection() {
         let payload = json!({ "mode": "invalid" });
-        let policy = with_profile_env(None, || resolve_policy(Some(&payload), Some("code")));
+        let policy = resolve_policy_with_profile(
+            CollaborationProfile::OfficialCompatible,
+            Some(&payload),
+            Some("code"),
+        );
         assert_eq!(policy.selected_mode, Some("invalid".to_string()));
         assert_eq!(policy.effective_mode, "code");
         assert_eq!(
@@ -338,8 +374,11 @@ mod tests {
                 "developer_instructions": "Keep answers concise."
             }
         });
-        let policy =
-            with_profile_env(None, || resolve_policy(Some(&json!({ "mode": "code" })), None));
+        let policy = resolve_policy_with_profile(
+            CollaborationProfile::OfficialCompatible,
+            Some(&json!({ "mode": "code" })),
+            None,
+        );
         let enriched = apply_policy_to_collaboration_mode(Some(payload), &policy);
         assert_eq!(enriched["mode"], "default");
         assert_eq!(enriched["selectedMode"], "code");
@@ -374,7 +413,11 @@ mod tests {
 
     #[test]
     fn resolve_policy_defaults_to_code_when_mode_missing() {
-        let policy = with_profile_env(None, || resolve_policy(None, None));
+        let policy = resolve_policy_with_profile(
+            CollaborationProfile::OfficialCompatible,
+            None,
+            None,
+        );
         assert_eq!(policy.effective_mode, "code");
         assert_eq!(
             policy.fallback_reason.as_deref(),
@@ -388,9 +431,11 @@ mod tests {
 
     #[test]
     fn strict_local_profile_blocks_request_user_input_in_code_mode() {
-        let policy = with_profile_env(Some("strict-local"), || {
-            resolve_policy(None, Some("code"))
-        });
+        let policy = resolve_policy_with_profile(
+            CollaborationProfile::StrictLocal,
+            None,
+            Some("code"),
+        );
         assert_eq!(policy.profile, CollaborationProfile::StrictLocal);
         assert_eq!(
             policy.request_user_input_policy,

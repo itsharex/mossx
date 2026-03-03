@@ -939,6 +939,8 @@ const zh = {
     opencodeHeartbeatHint3: "正在合并子任务结果，准备输出可读结论。",
     opencodeHeartbeatHint4: "正在校验关键步骤，避免返回不完整内容。",
     opencodeHeartbeatHint5: "正在持续请求响应数据，请稍候。",
+    opencodeModelSwitchTitle: "OpenCode 提示",
+    opencodeModelSwitchMessage: "检测到同会话切换模型，已自动新建后端会话以避免超时。",
     doneIn: "完成，用时 {{duration}}",
     copyMessage: "复制消息",
     memoryContextSummary: "记忆上下文摘要",
