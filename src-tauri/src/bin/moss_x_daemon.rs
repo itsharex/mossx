@@ -502,7 +502,7 @@ impl DaemonState {
         workspace_id: String,
     ) -> Result<WorkspaceFilesResponse, String> {
         workspaces_core::list_workspace_files_core(&self.workspaces, &workspace_id, |root| {
-            list_workspace_files_inner(root, 20000)
+            list_workspace_files_inner(root, 100000)
         })
         .await
     }
