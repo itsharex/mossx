@@ -1244,11 +1244,36 @@ export function useThreadMessaging({
       if (!workspaceId) {
         return false;
       }
-      const threadId = workspaceIdOverride
+      let threadId = workspaceIdOverride
         ? await ensureThreadForWorkspace(workspaceId)
         : await ensureThreadForActiveWorkspace();
       if (!threadId) {
         return false;
+      }
+      const threadEngine = resolveThreadEngine(workspaceId, threadId);
+      const threadIdCompatible = isThreadIdCompatibleWithEngine("codex", threadId);
+      if (threadEngine !== "codex" || !threadIdCompatible) {
+        onDebug?.({
+          id: `${Date.now()}-client-review-thread-rebind`,
+          timestamp: Date.now(),
+          source: "client",
+          label: "review/thread rebind",
+          payload: {
+            workspaceId,
+            originalThreadId: threadId,
+            originalThreadEngine: threadEngine,
+            threadIdCompatible,
+            targetEngine: "codex",
+          },
+        });
+        const reviewThreadId = await startThreadForWorkspace(workspaceId, {
+          activate: workspaceId === activeWorkspace?.id,
+          engine: "codex",
+        });
+        if (!reviewThreadId) {
+          return false;
+        }
+        threadId = reviewThreadId;
       }
 
       markProcessing(threadId, true);
@@ -1311,12 +1336,15 @@ export function useThreadMessaging({
       activeWorkspace,
       ensureThreadForActiveWorkspace,
       ensureThreadForWorkspace,
+      isThreadIdCompatibleWithEngine,
       markProcessing,
       markReviewing,
       onDebug,
       pushThreadErrorMessage,
+      resolveThreadEngine,
       safeMessageActivity,
       setActiveTurnId,
+      startThreadForWorkspace,
     ],
   );
 
@@ -1558,6 +1586,31 @@ export function useThreadMessaging({
       recordThreadActivity,
       resolveCollaborationRuntimeMode,
       safeMessageActivity,
+    ],
+  );
+
+  const startFast = useCallback(
+    async (text: string) => {
+      if (!activeWorkspace) {
+        return;
+      }
+      const threadId = await ensureThreadForActiveWorkspace();
+      if (!threadId) {
+        return;
+      }
+
+      const match = text.trim().match(/^\/fast(?:\s+(on|off))?/i);
+      const mode = match?.[1]?.toLowerCase();
+      const normalizedCommand = mode === "on" || mode === "off" ? `/fast ${mode}` : "/fast";
+
+      await sendMessageToThread(activeWorkspace, threadId, normalizedCommand, [], {
+        skipPromptExpansion: true,
+      });
+    },
+    [
+      activeWorkspace,
+      ensureThreadForActiveWorkspace,
+      sendMessageToThread,
     ],
   );
 
@@ -2213,6 +2266,7 @@ export function useThreadMessaging({
     startMcp,
     startSpecRoot,
     startStatus,
+    startFast,
     startMode,
     startExport,
     startImport,
