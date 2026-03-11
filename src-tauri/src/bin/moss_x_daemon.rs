@@ -23,6 +23,8 @@ mod rules;
 mod shared;
 #[path = "../storage.rs"]
 mod storage;
+#[path = "../text_encoding.rs"]
+mod text_encoding;
 #[allow(dead_code)]
 #[path = "../types.rs"]
 mod types;
@@ -85,6 +87,7 @@ use shared::{
     worktree_core,
 };
 use storage::{read_settings, read_workspaces};
+use text_encoding::decode_text_bytes;
 use types::{AppSettings, WorkspaceEntry, WorkspaceInfo, WorkspaceSettings, WorktreeSetupStatus};
 use workspace_settings::apply_workspace_settings_update;
 
@@ -1586,8 +1589,7 @@ fn read_external_spec_file_inner(
     if truncated {
         buffer.truncate(MAX_WORKSPACE_FILE_BYTES as usize);
     }
-    let content = String::from_utf8(buffer)
-        .map_err(|_| "External spec file is not valid UTF-8".to_string())?;
+    let content = decode_text_bytes(&buffer, "External spec file")?;
     Ok(ExternalSpecFileResponse {
         exists: true,
         content,
@@ -1667,7 +1669,7 @@ fn read_workspace_file_inner(
         buffer.truncate(MAX_WORKSPACE_FILE_BYTES as usize);
     }
 
-    let content = String::from_utf8(buffer).map_err(|_| "File is not valid UTF-8".to_string())?;
+    let content = decode_text_bytes(&buffer, "File")?;
     Ok(WorkspaceFileResponse { content, truncated })
 }
 

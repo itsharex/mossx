@@ -10,6 +10,7 @@ use ignore::WalkBuilder;
 use regex::{Regex, RegexBuilder};
 use serde::{Deserialize, Serialize};
 
+use crate::text_encoding::decode_text_bytes;
 use crate::utils::normalize_git_path;
 
 fn should_always_skip(name: &str) -> bool {
@@ -877,8 +878,7 @@ pub(crate) fn read_external_spec_file_inner(
     if truncated {
         buffer.truncate(MAX_WORKSPACE_FILE_BYTES as usize);
     }
-    let content = String::from_utf8(buffer)
-        .map_err(|_| "External spec file is not valid UTF-8".to_string())?;
+    let content = decode_text_bytes(&buffer, "External spec file")?;
     Ok(ExternalSpecFileResponse {
         exists: true,
         content,
@@ -958,7 +958,7 @@ pub(crate) fn read_workspace_file_inner(
         buffer.truncate(MAX_WORKSPACE_FILE_BYTES as usize);
     }
 
-    let content = String::from_utf8(buffer).map_err(|_| "File is not valid UTF-8".to_string())?;
+    let content = decode_text_bytes(&buffer, "File")?;
     Ok(WorkspaceFileResponse { content, truncated })
 }
 
@@ -1153,8 +1153,9 @@ mod tests {
     use super::{
         compile_search_regex, create_workspace_directory_inner, is_special_directory_path,
         list_workspace_directory_children_inner, list_workspace_files_inner,
-        normalize_workspace_relative_path, search_workspace_text_inner,
-        sort_and_truncate_named_entries, WorkspaceTextSearchOptions,
+        normalize_workspace_relative_path, read_external_spec_file_inner,
+        read_workspace_file_inner, search_workspace_text_inner, sort_and_truncate_named_entries,
+        WorkspaceTextSearchOptions,
     };
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -1358,6 +1359,42 @@ mod tests {
                 "bucket/z.ts".to_string()
             ]
         );
+
+        std::fs::remove_dir_all(&root).expect("cleanup root");
+    }
+
+    #[test]
+    fn read_workspace_file_decodes_gb18030_text() {
+        let root = std::env::temp_dir().join(format!("mossx-read-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(root.join("docs")).expect("create docs");
+        let (encoded, _, had_errors) = encoding_rs::GB18030.encode("usb异常断开");
+        assert!(!had_errors, "encode should succeed");
+        std::fs::write(root.join("docs/main_lin_test.c"), encoded.as_ref()).expect("write file");
+
+        let response = read_workspace_file_inner(&PathBuf::from(&root), "docs/main_lin_test.c")
+            .expect("read file");
+
+        assert_eq!(response.content, "usb异常断开");
+        assert!(!response.truncated);
+
+        std::fs::remove_dir_all(&root).expect("cleanup root");
+    }
+
+    #[test]
+    fn read_external_spec_file_decodes_gb18030_text() {
+        let root = std::env::temp_dir().join(format!("mossx-spec-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&root).expect("create spec root");
+        let (encoded, _, had_errors) = encoding_rs::GB18030.encode("重新插拔usb会恢复");
+        assert!(!had_errors, "encode should succeed");
+        std::fs::write(root.join("legacy.c"), encoded.as_ref()).expect("write file");
+
+        let response =
+            read_external_spec_file_inner(root.to_str().expect("root path"), "openspec/legacy.c")
+                .expect("read file");
+
+        assert!(response.exists);
+        assert_eq!(response.content, "重新插拔usb会恢复");
+        assert!(!response.truncated);
 
         std::fs::remove_dir_all(&root).expect("cleanup root");
     }
