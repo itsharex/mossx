@@ -33,6 +33,34 @@ export function useWorkspaceSessionActivity({
         threadParentById,
         threadStatusById,
       });
+      const seenEventIds = new Set<string>();
+      const normalizedTimeline = nextViewModel.timeline.map((event) => {
+        if (!seenEventIds.has(event.eventId)) {
+          seenEventIds.add(event.eventId);
+          return event;
+        }
+        const scopedToken = [
+          event.threadId,
+          event.turnId ?? "",
+          typeof event.turnIndex === "number" ? String(event.turnIndex) : "",
+          String(event.occurredAt),
+        ]
+          .filter(Boolean)
+          .join(":");
+        let dedupedEventId = scopedToken
+          ? `${event.eventId}::${scopedToken}`
+          : `${event.eventId}::dup`;
+        let fallbackIndex = 1;
+        while (seenEventIds.has(dedupedEventId)) {
+          fallbackIndex += 1;
+          dedupedEventId = `${event.eventId}::dup:${fallbackIndex}`;
+        }
+        seenEventIds.add(dedupedEventId);
+        return {
+          ...event,
+          eventId: dedupedEventId,
+        };
+      });
 
       const previousOccurredAtByEventId = eventOccurredAtRef.current;
       const nextOccurredAtByEventId: Record<string, number> = {};
@@ -42,7 +70,7 @@ export function useWorkspaceSessionActivity({
 
       // Reserve second buckets for still-visible historical events first,
       // so newly appeared events don't collapse into the same HH:mm:ss slot.
-      for (const event of nextViewModel.timeline) {
+      for (const event of normalizedTimeline) {
         const previousOccurredAt = previousOccurredAtByEventId[event.eventId];
         if (typeof previousOccurredAt === "number" && Number.isFinite(previousOccurredAt) && previousOccurredAt > 0) {
           occupiedSeconds.add(Math.floor(previousOccurredAt / 1000));
@@ -60,7 +88,7 @@ export function useWorkspaceSessionActivity({
         return nextTimestamp;
       };
 
-      const timeline = nextViewModel.timeline
+      const timeline = normalizedTimeline
         .map((event) => {
           const previousOccurredAt = previousOccurredAtByEventId[event.eventId];
           if (typeof previousOccurredAt === "number" && previousOccurredAt > 0) {

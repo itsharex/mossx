@@ -1084,6 +1084,40 @@ describe("WorkspaceSessionActivityPanel", () => {
     ).toBe("activityPanel.commandCategories.test · pnpm vitest --runInBand");
   });
 
+  it("hides placeholder command detail row when command text is generic", () => {
+    const viewModel = createViewModel();
+    viewModel.timeline = viewModel.timeline.map((event) =>
+      event.kind === "command"
+        ? {
+            ...event,
+            commandDescription: "",
+            commandText: "Command",
+          }
+        : event,
+    );
+
+    const view = render(
+      <WorkspaceSessionActivityPanel
+        workspaceId="workspace-1"
+        viewModel={viewModel}
+        onOpenDiffPath={vi.fn()}
+        onSelectThread={vi.fn()}
+      />,
+    );
+
+    const commandEventNode = getEventNode(view.container, "command");
+    const commandDetailRows = Array.from(
+      commandEventNode?.querySelectorAll(".session-activity-command-row") ?? [],
+    );
+    const commandRow = commandDetailRows.find(
+      (row) =>
+        row.querySelector(".session-activity-command-label")?.textContent ===
+        "activityPanel.command",
+    );
+
+    expect(commandRow).toBeUndefined();
+  });
+
   it("normalizes wrapped shell command and adds category in collapsed command title", () => {
     const viewModel = createViewModel();
     viewModel.timeline = viewModel.timeline.map((event) =>
@@ -1110,6 +1144,60 @@ describe("WorkspaceSessionActivityPanel", () => {
       getEventNode(view.container, "command")?.querySelector(".session-activity-card-title")
         ?.textContent,
     ).toBe("activityPanel.commandCategories.search · rg -n \\\"TODO\\\" src");
+  });
+
+  it("classifies wc command as read in collapsed command title", () => {
+    const viewModel = createViewModel();
+    viewModel.timeline = viewModel.timeline.map((event) =>
+      event.kind === "command"
+        ? {
+            ...event,
+            commandDescription: "",
+            commandText: "wc -l /workspace/CHANGELOG.md",
+          }
+        : event,
+    );
+
+    const view = render(
+      <WorkspaceSessionActivityPanel
+        workspaceId="workspace-1"
+        viewModel={viewModel}
+        onOpenDiffPath={vi.fn()}
+        onSelectThread={vi.fn()}
+      />,
+    );
+
+    expect(
+      getEventNode(view.container, "command")?.querySelector(".session-activity-card-title")
+        ?.textContent,
+    ).toBe("activityPanel.commandCategories.read · wc -l /workspace/CHANGELOG.md");
+  });
+
+  it("classifies find command as list in collapsed command title", () => {
+    const viewModel = createViewModel();
+    viewModel.timeline = viewModel.timeline.map((event) =>
+      event.kind === "command"
+        ? {
+            ...event,
+            commandDescription: "",
+            commandText: "find src -maxdepth 2",
+          }
+        : event,
+    );
+
+    const view = render(
+      <WorkspaceSessionActivityPanel
+        workspaceId="workspace-1"
+        viewModel={viewModel}
+        onOpenDiffPath={vi.fn()}
+        onSelectThread={vi.fn()}
+      />,
+    );
+
+    expect(
+      getEventNode(view.container, "command")?.querySelector(".session-activity-card-title")
+        ?.textContent,
+    ).toBe("activityPanel.commandCategories.list · find src -maxdepth 2");
   });
 
   it("keeps running commands expanded for at least 2s, then auto-collapses after completion", () => {

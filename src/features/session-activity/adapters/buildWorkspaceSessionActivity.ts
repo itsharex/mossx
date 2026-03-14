@@ -1021,6 +1021,7 @@ function buildThreadEvents(args: {
   const shouldMergeClaudeReasoningIntoFirstNode =
     inferReasoningPresentationEngine(args.thread.id) === "claude";
   const reasoningAnchorIndexByTurnId = new Map<string, number>();
+  const exploreEventIndexBySignature = new Map<string, number>();
   const { items: normalizedItems, reasoningMetaById } = normalizeReasoningItemsForTimeline(
     args.thread.id,
     args.items,
@@ -1040,6 +1041,50 @@ function buildThreadEvents(args: {
   });
   let currentTurnIndex = 0;
   let currentTurnToken = "bootstrap";
+  const buildExploreSignature = (
+    event: Pick<
+      SessionActivityEvent,
+      "threadId" | "turnId" | "summary" | "commandText" | "commandDescription" | "explorePreview" | "jumpTarget"
+    >,
+  ) => {
+    let jumpTargetToken = "";
+    if (event.jumpTarget?.type === "file") {
+      jumpTargetToken = `file:${event.jumpTarget.path}`;
+    } else if (event.jumpTarget?.type === "thread") {
+      jumpTargetToken = `thread:${event.jumpTarget.threadId}`;
+    } else if (event.jumpTarget?.type === "diff") {
+      jumpTargetToken = `diff:${event.jumpTarget.path}`;
+    }
+    return [
+      event.threadId,
+      event.turnId ?? "",
+      event.summary.trim(),
+      (event.commandText ?? "").trim(),
+      (event.commandDescription ?? "").trim(),
+      (event.explorePreview ?? "").trim(),
+      jumpTargetToken,
+    ].join("\u0000");
+  };
+  const upsertExploreEvent = (candidate: SessionActivityEvent) => {
+    const signature = buildExploreSignature(candidate);
+    const existingIndex = exploreEventIndexBySignature.get(signature);
+    if (existingIndex === undefined) {
+      events.push(candidate);
+      exploreEventIndexBySignature.set(signature, events.length - 1);
+      return;
+    }
+    const existing = events[existingIndex];
+    events[existingIndex] = {
+      ...existing,
+      occurredAt: Math.max(existing.occurredAt, candidate.occurredAt),
+      status: candidate.status,
+      commandText: candidate.commandText ?? existing.commandText,
+      commandDescription: candidate.commandDescription ?? existing.commandDescription,
+      explorePreview: candidate.explorePreview ?? existing.explorePreview,
+      jumpTarget: candidate.jumpTarget ?? existing.jumpTarget,
+      summary: candidate.summary || existing.summary,
+    };
+  };
   normalizedItems.forEach((item, index) => {
     if (item.kind === "message" && item.role === "user") {
       currentTurnIndex += 1;
@@ -1115,7 +1160,7 @@ function buildThreadEvents(args: {
           occurredAtBase +
           Math.floor(((entryIndex + 1) * 900) / (entries.length + 1));
         if (entry.kind === "run") {
-          events.push({
+          upsertExploreEvent({
             eventId: `explore:run:${item.id}:${entryIndex}`,
             threadId: args.thread.id,
             threadName,
@@ -1149,7 +1194,7 @@ function buildThreadEvents(args: {
                 return extractDisplayFileName(candidate) || candidate;
               })()
             : label || detail || "workspace";
-        events.push({
+        upsertExploreEvent({
           eventId: `explore:${entry.kind}:${item.id}:${entryIndex}`,
           threadId: args.thread.id,
           threadName,

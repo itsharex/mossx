@@ -133,4 +133,31 @@ describe("useWorkspaceSessionActivity", () => {
     expect(Math.abs((occurredAt[0] ?? 0) - (occurredAt[1] ?? 0))).toBeGreaterThanOrEqual(1000);
     expect(Math.abs((occurredAt[1] ?? 0) - (occurredAt[2] ?? 0))).toBeGreaterThanOrEqual(1000);
   });
+
+  it("ensures timeline event ids stay unique when source ids collide", () => {
+    const threads: ThreadSummary[] = [
+      { id: "root", name: "Root", updatedAt: 1 },
+      { id: "child", name: "Child", updatedAt: 2 },
+    ];
+
+    const { result } = renderHook(() =>
+      useWorkspaceSessionActivity({
+        activeThreadId: "child",
+        threads,
+        itemsByThread: {
+          root: [toolItem("cmd-1", "completed")],
+          child: [toolItem("cmd-1", "running")],
+        },
+        threadParentById: { child: "root" },
+        threadStatusById: {
+          root: { isProcessing: false },
+          child: { isProcessing: true },
+        },
+      }),
+    );
+
+    const eventIds = result.current.timeline.map((event) => event.eventId);
+    expect(new Set(eventIds).size).toBe(eventIds.length);
+    expect(eventIds.some((eventId) => eventId.includes("::"))).toBe(true);
+  });
 });

@@ -19,9 +19,9 @@ const EDIT_TOOL_TYPE_HINTS = new Set([
   "notebookedit",
   "create_file",
 ]);
-const READ_COMMANDS = new Set(["cat", "sed", "head", "tail", "less", "more", "nl"]);
-const LIST_COMMANDS = new Set(["ls", "tree", "find", "fd"]);
-const SEARCH_COMMANDS = new Set(["rg", "grep", "ripgrep", "findstr"]);
+const READ_COMMANDS = new Set(["cat", "sed", "head", "tail", "less", "more", "nl", "wc", "bat"]);
+const LIST_COMMANDS = new Set(["ls", "tree", "find", "fd", "dir"]);
+const SEARCH_COMMANDS = new Set(["rg", "grep", "ripgrep", "findstr", "ag", "ack"]);
 const FILE_CHANGE_PATH_KEYS = [
   "path",
   "file_path",

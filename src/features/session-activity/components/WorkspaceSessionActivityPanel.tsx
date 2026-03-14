@@ -13,6 +13,7 @@ import type { ReactNode } from "react";
 import { Markdown } from "../../messages/components/Markdown";
 import {
   inferCommandOutputRenderMeta,
+  normalizeCommandMarkdownOutput,
   renderCodeOutputHtml,
   renderShellOutputHtml,
 } from "../utils/shellOutputHighlight";
@@ -96,6 +97,14 @@ function canExpandCommand(event: SessionActivityEvent) {
       event.commandPreview,
     )
   );
+}
+
+function isPlaceholderCommandText(value: string | undefined) {
+  const normalized = (value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[：:。.!！?？]/g, "");
+  return normalized === "command" || normalized === "命令";
 }
 
 function canExpandReasoning(event: SessionActivityEvent) {
@@ -189,13 +198,13 @@ function resolveCollapsedCommandCategory(
   const packageSubcommand = resolvePackageSubcommand(tokens);
   const resolvedRunner = packageSubcommand || primary;
 
-  if (["rg", "grep", "find", "fd", "ag"].includes(primary)) {
+  if (["rg", "grep", "ripgrep", "findstr", "ag", "ack"].includes(primary)) {
     return t("activityPanel.commandCategories.search");
   }
-  if (["sed", "cat", "head", "tail", "less", "more", "awk"].includes(primary)) {
+  if (["sed", "cat", "head", "tail", "less", "more", "awk", "nl", "wc", "bat"].includes(primary)) {
     return t("activityPanel.commandCategories.read");
   }
-  if (primary === "ls" || primary === "tree") {
+  if (["ls", "tree", "find", "fd", "dir"].includes(primary)) {
     return t("activityPanel.commandCategories.list");
   }
   if (["git", "gh"].includes(primary)) {
@@ -874,7 +883,7 @@ export function WorkspaceSessionActivityPanel({
             <div className="session-activity-preview">
               {event.kind === "command" ? (
                 <div className="session-activity-command-detail">
-                  {event.commandText ? (
+                  {event.commandText && !isPlaceholderCommandText(event.commandText) ? (
                     <div className="session-activity-command-row">
                       <span className="session-activity-command-label">
                         {t("activityPanel.command")}
@@ -921,7 +930,7 @@ export function WorkspaceSessionActivityPanel({
                 event.commandPreview && commandRenderMeta?.mode === "markdown" ? (
                   <div className="session-activity-preview-text is-markdown is-command-markdown">
                     <Markdown
-                      value={event.commandPreview}
+                      value={normalizeCommandMarkdownOutput(event.commandPreview)}
                       className="markdown session-activity-preview-markdown"
                       codeBlockStyle="message"
                       streamingThrottleMs={80}

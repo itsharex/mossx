@@ -704,6 +704,31 @@ go lang`,
     }
   });
 
+  it("treats wc -l as a read command when a file path is present", () => {
+    const items: ConversationItem[] = [
+      {
+        id: "cmd-1",
+        kind: "tool",
+        toolType: "commandExecution",
+        title: "Command: wc -l src/foo.ts",
+        detail: "",
+        status: "completed",
+        output: "",
+      },
+    ];
+
+    const prepared = prepareThreadItems(items);
+    expect(prepared).toHaveLength(1);
+    expect(prepared[0].kind).toBe("explore");
+    if (prepared[0].kind === "explore") {
+      expect(prepared[0].entries).toHaveLength(1);
+      expect(prepared[0].entries[0].kind).toBe("read");
+      expect(prepared[0].entries[0].detail ?? prepared[0].entries[0].label).toBe(
+        "src/foo.ts",
+      );
+    }
+  });
+
   it("summarizes piped nl commands using the left-hand read", () => {
     const items: ConversationItem[] = [
       {

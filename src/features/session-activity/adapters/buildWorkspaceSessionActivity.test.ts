@@ -770,6 +770,45 @@ describe("buildWorkspaceSessionActivity", () => {
     });
   });
 
+  it("dedupes repeated explore snapshots with the same signature in a single turn", () => {
+    const threads: ThreadSummary[] = [{ id: "root", name: "Root", updatedAt: 1000 }];
+    const itemsByThread = {
+      root: [
+        {
+          id: "user-1",
+          kind: "message" as const,
+          role: "user" as const,
+          text: "看下项目结构",
+        } satisfies ConversationItem,
+        {
+          id: "explore-1",
+          kind: "explore" as const,
+          status: "explored" as const,
+          entries: [{ kind: "list" as const, label: "/workspace" }],
+        } satisfies ConversationItem,
+        {
+          id: "explore-2",
+          kind: "explore" as const,
+          status: "exploring" as const,
+          entries: [{ kind: "list" as const, label: "/workspace" }],
+        } satisfies ConversationItem,
+      ],
+    };
+
+    const result = buildWorkspaceSessionActivity({
+      activeThreadId: "root",
+      threads,
+      itemsByThread,
+      threadParentById: {},
+      threadStatusById: { root: { isProcessing: true } },
+    });
+
+    expect(result.timeline).toHaveLength(1);
+    expect(result.timeline[0]?.kind).toBe("explore");
+    expect(result.timeline[0]?.summary).toBe("List · /workspace");
+    expect(result.timeline[0]?.status).toBe("running");
+  });
+
   it("splits activity events by user conversation turns", () => {
     const threads: ThreadSummary[] = [{ id: "root", name: "Root", updatedAt: 1000 }];
     const itemsByThread = {
