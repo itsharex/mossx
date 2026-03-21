@@ -2,6 +2,44 @@
 
 ---
 
+##### **2026年3月21日（v0.3.2）**
+
+English:
+
+✨ Features
+- Deliver Phase 1 of Kanban scheduling and chained-task governance to improve multi-task flow control
+- Optimize serial scheduling rules and introduce a clearer Kanban label taxonomy
+- Enhance group-level batch operations and task-creation interactions in Kanban workflows
+- Support left-double-click expand/collapse behavior for workspace tree groups
+
+🔧 Improvements
+- Add `windows-latest` doctor + integration CI gate for stronger cross-platform release confidence
+- Harden Windows compatibility checks by making lint/runtime contract `no-undef` verification Windows-safe
+
+🐛 Fixes
+- Fix scheduler lock contention and drag-sort anomalies under filtered Kanban views
+- Fix batch-complete confirmation bypass and outside-click handling in grouped operations
+- Enforce second-step confirmation for batch completion and polish confirm-modal behavior/styles
+
+中文：
+
+✨ Features
+- 完成 Kanban 调度与串联任务治理第一阶段落地，提升多任务流转可控性
+- 优化串行调度规则并完善看板标签体系，提升任务组织清晰度
+- 增强分组级批量操作与任务创建交互体验
+- 工作区树支持左键双击展开/折叠分组
+
+🔧 Improvements
+- 新增 `windows-latest` 的 doctor + integration CI 门禁，提升跨平台发布稳定性
+- 调整 lint/运行时契约 `no-undef` 校验为 Windows 兼容实现
+
+🐛 Fixes
+- 修复过滤视图下调度锁竞争与拖拽排序异常
+- 修复分组批量完成流程中的确认放行与菜单外点击兼容问题
+- 修复批量完成缺少二次确认的问题并优化确认弹窗样式与行为
+
+---
+
 ##### **2026年3月20日（v0.3.1）**
 
 English:
@@ -12,6 +50,8 @@ English:
 - Improve recent-completion readability with compact copy and clearer project identity cues
 - Support opening absolute paths outside project root from session activity file-change entries
 - Add shell-script group rendering and edge-case compatibility in file views
+- Add persistent UI zoom slider in Settings with unified range control (80%-260%)
+- Improve Session Activity real-time-follow guide overlay and assistant-entry discoverability
 
 🔧 Improvements
 - Introduce locked + atomic client-store write path and key-level patch updates to reduce stale overwrite risk across concurrent clients
@@ -26,6 +66,7 @@ English:
 - Fix large-file governance regression by replacing line-compression workaround with structural module splitting
 - Fix ChatInputBox undo/redo behavior and align shortcuts (`Ctrl+Z`/`Ctrl+Shift+Z`, `Cmd+Z`/`Cmd+Shift+Z`) across platforms
 - Remove redundant bottom border on unselected Git view-switch buttons
+- Fix branch-switch validation and regression handling under dirty worktree states
 
 中文：
 
@@ -36,6 +77,8 @@ English:
 - 精简最近完成卡片文案并强化项目标识，提升扫读效率
 - 支持从会话活动文件变更中打开项目外绝对路径文件
 - 补齐文件视图中 shell 脚本分组渲染并增强边界兼容性
+- 设置页新增 UI 缩放滑条并统一缩放范围到 80%-260%
+- 优化 Session Activity 实时跟随引导浮层与机器人入口可发现性
 
 🔧 Improvements
 - 客户端存储写入链路增加加锁与原子写，并支持按 key 的 patch 更新，降低多客户端并发下旧数据覆盖风险
@@ -50,6 +93,7 @@ English:
 - 修复大文件治理回归，移除“压缩换行”临时方案并改为结构化拆分
 - 修复 ChatInputBox 撤销重做行为，并统一跨平台快捷键（`Ctrl+Z`/`Ctrl+Shift+Z`、`Cmd+Z`/`Cmd+Shift+Z`）
 - 修复 Git 视图切换中未选中按钮残留底部边线问题
+- 修复 dirty worktree 场景下分支切换校验与回归问题
 
 ---
 
