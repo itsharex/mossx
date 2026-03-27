@@ -1741,7 +1741,7 @@ const enPart1 = {
     useWorkspaceRoot: "Use workspace root",
     depth: "Depth",
     path: "Path:",
-    change: "Change",
+    change: "Switch",
     active: "Active",
     // GitHub integration
     githubIssues: "GitHub issues",

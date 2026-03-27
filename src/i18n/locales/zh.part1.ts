@@ -1706,7 +1706,7 @@ const zhPart1 = {
     useWorkspaceRoot: "使用工作区根目录",
     depth: "深度",
     path: "路径：",
-    change: "更改",
+    change: "切换",
     active: "活动",
     // GitHub 集成
     githubIssues: "GitHub 议题",
