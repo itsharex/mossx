@@ -167,8 +167,8 @@ describe("GenericToolBlock", () => {
     expect(rawPre?.textContent ?? "").toContain("Switch to Plan mode");
   });
 
-  it("shows file-change summary and detail metrics", () => {
-    render(
+  it("shows file-change summary and per-file detail stats", () => {
+    const view = render(
       <GenericToolBlock
         item={fileChangeItem}
         isExpanded
@@ -179,8 +179,9 @@ describe("GenericToolBlock", () => {
     expect(screen.getAllByText("2 files").length).toBeGreaterThan(0);
     expect(screen.getAllByText("+2").length).toBeGreaterThan(0);
     expect(screen.getAllByText("-1").length).toBeGreaterThan(0);
-    expect(screen.getByText("A 1")).toBeTruthy();
-    expect(screen.getByText("M 1")).toBeTruthy();
+    expect(view.container.querySelector(".tool-change-metrics")).toBeNull();
+    expect(view.container.querySelectorAll(".tool-change-kind-badge.added").length).toBe(1);
+    expect(view.container.querySelectorAll(".tool-change-kind-badge.modified").length).toBe(1);
     expect(screen.getByText("-0")).toBeTruthy();
     expect(screen.getAllByText("+1").length).toBeGreaterThan(1);
   });

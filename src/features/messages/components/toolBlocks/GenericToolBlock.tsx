@@ -754,15 +754,6 @@ export const GenericToolBlock = memo(function GenericToolBlock({
 
       {isExpanded && hasChanges && item.changes && (
         <div className="task-details tool-change-details" style={{ border: 'none' }}>
-          <div className="tool-change-metrics">
-            <span>{item.changes.length} files</span>
-            <span className="diff-stat-add">+{changeStats.additions}</span>
-            <span className="diff-stat-del">-{changeStats.deletions}</span>
-            {changeStats.added > 0 && <span className="tool-change-kind-badge added">A {changeStats.added}</span>}
-            {changeStats.modified > 0 && <span className="tool-change-kind-badge modified">M {changeStats.modified}</span>}
-            {changeStats.deleted > 0 && <span className="tool-change-kind-badge deleted">D {changeStats.deleted}</span>}
-            {changeStats.renamed > 0 && <span className="tool-change-kind-badge renamed">R {changeStats.renamed}</span>}
-          </div>
           <div className="task-content-wrapper">
             {displayChanges.map((change, index) => (
               <div key={`${change.path}-${index}`} className="tool-change-entry">

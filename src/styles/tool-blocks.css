@@ -474,11 +474,13 @@
 }
 
 .tool-change-inline-diff.edit-diff-viewer {
-  margin: 4px 2px 8px 26px;
+  margin: 0 0 8px 0;
   border: 1px solid var(--border-subtle);
   border-radius: 6px;
   background: color-mix(in srgb, var(--surface-card) 86%, var(--surface-base));
   max-height: 180px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tool-change-inline-diff .edit-diff-line.is-hunk {
