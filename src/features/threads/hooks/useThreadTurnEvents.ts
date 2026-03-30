@@ -90,6 +90,7 @@ type UseThreadTurnEventsOptions = {
     workspaceId: string,
     engine: "claude" | "gemini" | "opencode",
   ) => string | null;
+  getActiveTurnIdForThread?: (threadId: string) => string | null;
   renamePendingMemoryCaptureKey: (
     oldThreadId: string,
     newThreadId: string,
@@ -115,6 +116,7 @@ export function useThreadTurnEvents({
   renameAutoTitlePendingKey,
   renameThreadTitleMapping,
   resolvePendingThreadForSession,
+  getActiveTurnIdForThread,
   renamePendingMemoryCaptureKey,
   onDebug,
 }: UseThreadTurnEventsOptions) {
@@ -135,6 +137,7 @@ export function useThreadTurnEvents({
     (
       workspaceId: string,
       threadId: string,
+      turnId: string,
     ): string | null => {
       const engine = threadId.startsWith("opencode:")
         ? "opencode"
@@ -147,12 +150,16 @@ export function useThreadTurnEvents({
         return null;
       }
       const pending = resolvePendingThreadForSession?.(workspaceId, engine) ?? null;
-      if (!pending || pending === threadId) {
+      if (!pending || pending === threadId || !turnId || !getActiveTurnIdForThread) {
+        return null;
+      }
+      const activePendingTurnId = getActiveTurnIdForThread(pending);
+      if (!activePendingTurnId || activePendingTurnId !== turnId) {
         return null;
       }
       return pending;
     },
-    [resolvePendingThreadForSession],
+    [getActiveTurnIdForThread, resolvePendingThreadForSession],
   );
 
   const onThreadStarted = useCallback(
@@ -220,8 +227,8 @@ export function useThreadTurnEvents({
   );
 
   const onTurnCompleted = useCallback(
-    (workspaceId: string, threadId: string, _turnId: string) => {
-      const aliasThreadId = resolvePendingAliasThread(workspaceId, threadId);
+    (workspaceId: string, threadId: string, turnId: string) => {
+      const aliasThreadId = resolvePendingAliasThread(workspaceId, threadId, turnId);
       const targetThreadIds = aliasThreadId
         ? [threadId, aliasThreadId]
         : [threadId];
@@ -304,7 +311,7 @@ export function useThreadTurnEvents({
     (
       workspaceId: string,
       threadId: string,
-      _turnId: string,
+      turnId: string,
       payload: { message: string; willRetry: boolean },
     ) => {
       if (payload.willRetry) {
@@ -337,7 +344,7 @@ export function useThreadTurnEvents({
       markProcessing(threadId, false);
       markReviewing(threadId, false);
       setActiveTurnId(threadId, null);
-      const aliasThreadId = resolvePendingAliasThread(workspaceId, threadId);
+      const aliasThreadId = resolvePendingAliasThread(workspaceId, threadId, turnId);
       if (aliasThreadId) {
         dispatch({
           type: "finalizePendingToolStatuses",

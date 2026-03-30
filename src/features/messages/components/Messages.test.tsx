@@ -173,6 +173,78 @@ describe("Messages", () => {
     expect(userText?.textContent ?? "").toBe("你好啊");
   });
 
+  it("hides agent prompt block in history user bubble and shows selected agent tag", () => {
+    const items: ConversationItem[] = [
+      {
+        id: "msg-agent-header-1",
+        kind: "message",
+        role: "user",
+        text:
+          "请帮我优化这段 UI。\n\n## Agent Role and Instructions\n\n前端专家\n你是一个专注前端体验的专家。",
+      },
+    ];
+
+    const { container } = render(
+      <Messages
+        items={items}
+        threadId="thread-1"
+        workspaceId="ws-1"
+        isThinking={false}
+        openTargets={[]}
+        selectedOpenAppId=""
+      />,
+    );
+
+    const userText = container.querySelector(".user-collapsible-text-content");
+    const userBubble = container.querySelector(".message.user .bubble");
+    const agentTagInBubble = userBubble?.querySelector(".message-agent-reveal");
+    const agentIconButton = container.querySelector(".message-agent-icon-button");
+    expect(userText?.textContent ?? "").toBe("请帮我优化这段 UI。");
+    expect(container.querySelector(".message-agent-tag-text")).toBeNull();
+    expect(agentIconButton).toBeTruthy();
+    if (agentIconButton) {
+      fireEvent.click(agentIconButton);
+    }
+    expect(container.querySelector(".message-agent-tag-text")?.textContent ?? "").toBe("前端专家");
+    expect(agentTagInBubble).toBeNull();
+    expect(container.textContent ?? "").not.toContain("Agent Role and Instructions");
+    expect(container.textContent ?? "").not.toContain("你是一个专注前端体验的专家");
+  });
+
+  it("shows selected agent tag for realtime/local user message metadata", () => {
+    const items: ConversationItem[] = [
+      {
+        id: "msg-agent-meta-1",
+        kind: "message",
+        role: "user",
+        text: "继续执行",
+        selectedAgentName: "后端架构师",
+      },
+    ];
+
+    const { container } = render(
+      <Messages
+        items={items}
+        threadId="thread-1"
+        workspaceId="ws-1"
+        isThinking
+        processingStartedAt={Date.now() - 1_000}
+        openTargets={[]}
+        selectedOpenAppId=""
+      />,
+    );
+
+    const userText = container.querySelector(".user-collapsible-text-content");
+    const agentIconButton = container.querySelector(".message-agent-icon-button");
+    expect(userText?.textContent ?? "").toBe("继续执行");
+    expect(container.querySelector(".message-agent-tag-text")).toBeNull();
+    expect(agentIconButton).toBeTruthy();
+    if (agentIconButton) {
+      fireEvent.click(agentIconButton);
+    }
+    expect(container.querySelector(".message-agent-tag-text")?.textContent ?? "").toBe("后端架构师");
+  });
+
   it("preserves multiline formatting when extracting [User Input] content", () => {
     const multilineInput = "整理内容为：\n1. 宏观观点\n2. 宏观观点\n\n3. 商品观点";
     const items: ConversationItem[] = [

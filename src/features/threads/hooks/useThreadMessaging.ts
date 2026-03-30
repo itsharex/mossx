@@ -694,6 +694,10 @@ export function useThreadMessaging({
       finalText = injectionResult.finalText;
       const resolvedSelectedAgent =
         resolvedEngine !== "opencode" ? options?.selectedAgent ?? null : null;
+      const selectedAgentName =
+        resolvedEngine !== "opencode"
+          ? resolvedSelectedAgent?.name?.trim() || null
+          : null;
       const selectedAgentPrompt = resolvedSelectedAgent?.prompt?.trim() || "";
       if (selectedAgentPrompt) {
         if (!finalText.includes(AGENT_PROMPT_HEADER)) {
@@ -907,6 +911,7 @@ export function useThreadMessaging({
               text: optimisticText,
               images: images.length > 0 ? images : undefined,
               collaborationMode: userCollaborationMode,
+              selectedAgentName,
             },
             hasCustomName: Boolean(getCustomName(workspace.id, threadId)),
           });
@@ -1080,6 +1085,7 @@ export function useThreadMessaging({
               text: visibleUserText,
               images: images.length > 0 ? images : undefined,
               collaborationMode: userCollaborationMode,
+              selectedAgentName,
             },
             hasCustomName: Boolean(getCustomName(workspace.id, threadId)),
           });

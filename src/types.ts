@@ -83,6 +83,7 @@ export type ConversationItem =
       text: string;
       images?: string[];
       collaborationMode?: "plan" | "code" | null;
+      selectedAgentName?: string | null;
     }
   | { id: string; kind: "reasoning"; summary: string; content: string }
   | { id: string; kind: "diff"; title: string; diff: string; status?: string }

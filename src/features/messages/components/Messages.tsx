@@ -178,6 +178,7 @@ function areMessageItemsEqual(
       previous.id === next.id &&
       previous.role === next.role &&
       previous.text === next.text &&
+      previous.selectedAgentName === next.selectedAgentName &&
       areMessageImagesEqual(previous.images, next.images)
     )
   );
@@ -226,6 +227,7 @@ const PROJECT_MEMORY_XML_PREFIX_REGEX =
 const MODE_FALLBACK_MARKER_REGEX = /User request\s*:\s*/i;
 const MODE_FALLBACK_PREFIX_REGEX =
   /^(?:collaboration mode:\s*code\.|execution policy \(default mode\):|execution policy \(plan mode\):)/i;
+const AGENT_PROMPT_HEADER_LINE_REGEX = /^##\s*Agent Role and Instructions\s*$/im;
 const MESSAGES_PERF_DEBUG_FLAG_KEY = "mossx.debug.messages.perf";
 const CLAUDE_HIDE_REASONING_MODULE_FLAG_KEY = "mossx.claude.hideReasoningModule";
 const CLAUDE_RENDER_DEBUG_FLAG_KEY = "mossx.debug.claude.render";
@@ -322,6 +324,39 @@ function extractLatestUserInputTextPreserveFormatting(text: string): string {
   const extractedRaw = text.slice(markerIndex + markerLength);
   const extracted = extractedRaw.replace(/^\r?\n/, "").replace(/^ /, "");
   return extracted.trim().length > 0 ? extracted : text;
+}
+
+function normalizeSelectedAgentName(value: string | null | undefined): string | null {
+  const trimmed = (value ?? "").trim();
+  if (!trimmed) {
+    return null;
+  }
+  const normalized = trimmed.replace(/^#+\s*/, "").trim();
+  return normalized || null;
+}
+
+function stripAgentPromptBlockFromUserText(
+  text: string,
+): { text: string; selectedAgentName: string | null } {
+  const match = AGENT_PROMPT_HEADER_LINE_REGEX.exec(text);
+  if (!match || typeof match.index !== "number" || match.index <= 0) {
+    return { text, selectedAgentName: null };
+  }
+  const tailStart = match.index + match[0].length;
+  const tailText = text.slice(tailStart);
+  if (!tailText.trim()) {
+    return { text, selectedAgentName: null };
+  }
+  const agentName = normalizeSelectedAgentName(
+    tailText
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .find((line) => line.length > 0) ?? null,
+  );
+  return {
+    text: text.slice(0, match.index).replace(/\s+$/, ""),
+    selectedAgentName: agentName,
+  };
 }
 
 function toConversationEngine(
@@ -1368,6 +1403,7 @@ const MessageRow = memo(function MessageRow({
   const { t } = useTranslation();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [memorySummaryExpanded, setMemorySummaryExpanded] = useState(false);
+  const [isAgentBadgeExpanded, setIsAgentBadgeExpanded] = useState(false);
   const legacyUserMemory = useMemo(
     () =>
       item.role === "user" ? parseInjectedMemoryPrefixFromUser(item.text) : null,
@@ -1380,17 +1416,42 @@ const MessageRow = memo(function MessageRow({
         : legacyUserMemory?.memorySummary ?? null,
     [item.role, item.text, legacyUserMemory],
   );
-  const displayText = useMemo(() => {
+  const userMessagePresentation = useMemo(() => {
     const originalText = item.role === "user" ? legacyUserMemory?.remainingText ?? item.text : item.text;
     if (item.role !== "user") {
-      return memorySummary ? "" : originalText;
+      return {
+        displayText: memorySummary ? "" : originalText,
+        selectedAgentName: null,
+      };
     }
+    const strippedAgentPrompt = stripAgentPromptBlockFromUserText(originalText);
     const safeText = enableCollaborationBadge
-      ? extractModeFallbackUserInput(originalText).text
-      : originalText;
+      ? extractModeFallbackUserInput(strippedAgentPrompt.text).text
+      : strippedAgentPrompt.text;
     const filteredCommandText = extractCommandMessageDisplayText(safeText);
-    return extractLatestUserInputTextPreserveFormatting(filteredCommandText);
-  }, [enableCollaborationBadge, item.role, item.text, memorySummary]);
+    return {
+      displayText: extractLatestUserInputTextPreserveFormatting(filteredCommandText),
+      selectedAgentName:
+        strippedAgentPrompt.selectedAgentName
+        ?? normalizeSelectedAgentName(item.selectedAgentName),
+    };
+  }, [
+    enableCollaborationBadge,
+    item.role,
+    item.selectedAgentName,
+    item.text,
+    legacyUserMemory?.remainingText,
+    memorySummary,
+  ]);
+  const displayText = userMessagePresentation.displayText;
+  const selectedAgentName = userMessagePresentation.selectedAgentName;
+  const hasExternalAgentBadge = item.role === "user" && Boolean(selectedAgentName);
+  useEffect(() => {
+    setIsAgentBadgeExpanded(false);
+  }, [item.id, selectedAgentName]);
+  const handleToggleAgentBadge = useCallback(() => {
+    setIsAgentBadgeExpanded((current) => !current);
+  }, []);
   const hasText = displayText.trim().length > 0;
   const hideCopyButton = item.role === "assistant" && Boolean(memorySummary) && !hasText;
   const useCodexCanvasMarkdown = presentationProfile
@@ -1418,84 +1479,113 @@ const MessageRow = memo(function MessageRow({
       .filter(Boolean) as MessageImage[];
   }, [item.images]);
 
-  return (
-    <div className={`message ${item.role}`}>
-      <div className="bubble message-bubble">
-        {imageItems.length > 0 && (
-          <MessageImageGrid
-            images={imageItems}
-            onOpen={setLightboxIndex}
-            hasText={hasText}
-          />
-        )}
-        {memorySummary ? (
-          <div className="memory-context-summary-card">
-            <button
-              type="button"
-              className="memory-context-summary-toggle"
-              onClick={() => setMemorySummaryExpanded((current) => !current)}
-              aria-expanded={memorySummaryExpanded}
-            >
-              <span className="memory-context-summary-title">
-                {t("messages.memoryContextSummary")}
-              </span>
-              <span className="memory-context-summary-count">
-                {t("messages.memoryContextSummaryCount", {
-                  count: memorySummary.lines.length,
-                })}
-              </span>
-              {memorySummaryExpanded ? (
-                <ChevronUp size={14} aria-hidden />
-              ) : (
-                <ChevronDown size={14} aria-hidden />
-              )}
-            </button>
-            {memorySummaryExpanded && (
-              <div className="memory-context-summary-content">
-                {memorySummary.lines.map((line, index) => (
-                  <p key={`${item.id}-line-${index}`}>{line}</p>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
-        {hasText && (
-          item.role === "user" ? (
-            <CollapsibleUserTextBlock content={displayText} />
-          ) : (
-            <Markdown
-              value={displayText}
-              className={resolvedMarkdownClassName}
-              codeBlockStyle="message"
-              codeBlockCopyUseModifier={codeBlockCopyUseModifier}
-              streamingThrottleMs={isStreaming ? 0 : 80}
-              onOpenFileLink={onOpenFileLink}
-              onOpenFileLinkMenu={onOpenFileLinkMenu}
-            />
-          )
-        )}
-        {lightboxIndex !== null && imageItems.length > 0 && (
-          <ImageLightbox
-            images={imageItems}
-            activeIndex={lightboxIndex}
-            onClose={() => setLightboxIndex(null)}
-          />
-        )}
-        {!hideCopyButton && (
+  const bubbleNode = (
+    <div className="bubble message-bubble">
+      {imageItems.length > 0 && (
+        <MessageImageGrid
+          images={imageItems}
+          onOpen={setLightboxIndex}
+          hasText={hasText}
+        />
+      )}
+      {memorySummary ? (
+        <div className="memory-context-summary-card">
           <button
             type="button"
-            className={`ghost message-copy-button${isCopied ? " is-copied" : ""}`}
-            onClick={() => onCopy(item, displayText || item.text)}
-            aria-label={t("messages.copyMessage")}
-            title={t("messages.copyMessage")}
+            className="memory-context-summary-toggle"
+            onClick={() => setMemorySummaryExpanded((current) => !current)}
+            aria-expanded={memorySummaryExpanded}
           >
-            <span className="message-copy-icon" aria-hidden>
-              <Copy className="message-copy-icon-copy" size={14} />
-              <Check className="message-copy-icon-check" size={14} />
+            <span className="memory-context-summary-title">
+              {t("messages.memoryContextSummary")}
             </span>
+            <span className="memory-context-summary-count">
+              {t("messages.memoryContextSummaryCount", {
+                count: memorySummary.lines.length,
+              })}
+            </span>
+            {memorySummaryExpanded ? (
+              <ChevronUp size={14} aria-hidden />
+            ) : (
+              <ChevronDown size={14} aria-hidden />
+            )}
           </button>
-        )}
-      </div>
+          {memorySummaryExpanded && (
+            <div className="memory-context-summary-content">
+              {memorySummary.lines.map((line, index) => (
+                <p key={`${item.id}-line-${index}`}>{line}</p>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : null}
+      {hasText && (
+        item.role === "user" ? (
+          <CollapsibleUserTextBlock content={displayText} />
+        ) : (
+          <Markdown
+            value={displayText}
+            className={resolvedMarkdownClassName}
+            codeBlockStyle="message"
+            codeBlockCopyUseModifier={codeBlockCopyUseModifier}
+            streamingThrottleMs={isStreaming ? 0 : 80}
+            onOpenFileLink={onOpenFileLink}
+            onOpenFileLinkMenu={onOpenFileLinkMenu}
+          />
+        )
+      )}
+      {lightboxIndex !== null && imageItems.length > 0 && (
+        <ImageLightbox
+          images={imageItems}
+          activeIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+      {!hideCopyButton && (
+        <button
+          type="button"
+          className={`ghost message-copy-button${isCopied ? " is-copied" : ""}`}
+          onClick={() => onCopy(item, displayText || item.text)}
+          aria-label={t("messages.copyMessage")}
+          title={t("messages.copyMessage")}
+        >
+          <span className="message-copy-icon" aria-hidden>
+            <Copy className="message-copy-icon-copy" size={14} />
+            <Check className="message-copy-icon-check" size={14} />
+          </span>
+        </button>
+      )}
+    </div>
+  );
+
+  const agentBadgeNode = hasExternalAgentBadge ? (
+    <div className={`message-user-agent-rail${isAgentBadgeExpanded ? " is-open" : ""}`}>
+      <button
+        type="button"
+        className="message-agent-icon-button"
+        onClick={handleToggleAgentBadge}
+        aria-expanded={isAgentBadgeExpanded}
+        aria-label={selectedAgentName ? `显示智能体标签：${selectedAgentName}` : "显示智能体标签"}
+        title={selectedAgentName ?? undefined}
+      >
+        <span className="codicon codicon-hubot" aria-hidden />
+      </button>
+      {isAgentBadgeExpanded && selectedAgentName && (
+        <div className="message-agent-reveal is-visible" role="status">
+          <span className="message-agent-tag-text">{selectedAgentName}</span>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  return (
+    <div className={`message ${item.role}`}>
+      {hasExternalAgentBadge ? (
+        <div className="message-user-layout">
+          {agentBadgeNode}
+          {bubbleNode}
+        </div>
+      ) : bubbleNode}
     </div>
   );
 }, areMessageRowPropsEqual);

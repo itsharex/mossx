@@ -1600,6 +1600,8 @@ export function useThreads({
     renameAutoTitlePendingKey,
     renameThreadTitleMapping,
     resolvePendingThreadForSession,
+    getActiveTurnIdForThread: (threadId: string) =>
+      state.activeTurnIdByThread[threadId] ?? null,
     renamePendingMemoryCaptureKey,
     onAgentMessageCompletedExternal: handleAgentMessageCompletedForMemory,
     onCollaborationModeResolved: onCollaborationModeResolved

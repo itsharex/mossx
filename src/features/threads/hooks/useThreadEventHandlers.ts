@@ -62,6 +62,7 @@ type ThreadEventHandlersOptions = {
     workspaceId: string,
     engine: "claude" | "gemini" | "opencode",
   ) => string | null;
+  getActiveTurnIdForThread?: (threadId: string) => string | null;
   renamePendingMemoryCaptureKey: (
     oldThreadId: string,
     newThreadId: string,
@@ -135,6 +136,7 @@ export function useThreadEventHandlers({
   renameAutoTitlePendingKey,
   renameThreadTitleMapping,
   resolvePendingThreadForSession,
+  getActiveTurnIdForThread,
   renamePendingMemoryCaptureKey,
   onAgentMessageCompletedExternal,
   onCollaborationModeResolved,
@@ -301,6 +303,7 @@ export function useThreadEventHandlers({
     renameAutoTitlePendingKey,
     renameThreadTitleMapping,
     resolvePendingThreadForSession,
+    getActiveTurnIdForThread,
     renamePendingMemoryCaptureKey,
     onDebug,
   });

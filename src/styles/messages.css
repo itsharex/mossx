@@ -428,6 +428,22 @@
   justify-content: flex-end;
 }
 
+.message-user-layout {
+  display: inline-flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 10px;
+  max-width: min(94%, 760px);
+}
+
+.message-user-agent-rail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 4px;
+  flex: 0 0 auto;
+}
+
 .bubble {
   max-width: 70%;
   padding: 10px 14px;
@@ -525,6 +541,96 @@
   border: none;
   border-radius: 0;
   box-shadow: none;
+}
+
+.message-agent-icon-button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-message-user-bg, var(--surface-bubble-user)) 86%, #ffffff 14%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.message-agent-icon-button .codicon {
+  display: block;
+  font-size: 20px;
+  line-height: 1;
+  opacity: 0.98;
+  transform: scale(1.18);
+  transform-origin: center;
+}
+
+.message-agent-icon-button:hover {
+  transform: scale(1.04);
+  opacity: 0.88;
+}
+
+.message-agent-icon-button:focus-visible {
+  outline: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+.message-user-agent-rail.is-open .message-agent-icon-button {
+  opacity: 1;
+}
+
+.message-agent-reveal {
+  display: inline-flex;
+  align-items: center;
+  max-width: 200px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: color-mix(in srgb, var(--color-message-user-bg, var(--surface-bubble-user)) 90%, #ffffff 10%);
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+  transition: none;
+}
+
+.message-agent-reveal.is-visible {
+  opacity: 1;
+}
+
+.message-agent-tag-text {
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .message-user-layout {
+    gap: 8px;
+    max-width: 96%;
+  }
+
+  .message-agent-reveal {
+    max-width: 148px;
+    padding: 2px 4px;
+  }
+
+  .message-agent-icon-button .codicon {
+    font-size: 18px;
+    transform: scale(1.14);
+  }
+
+  .message-agent-tag-text {
+    max-width: 132px;
+  }
 }
 
 .markdown-live-streaming {
