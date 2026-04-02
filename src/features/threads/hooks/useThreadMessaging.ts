@@ -18,6 +18,7 @@ import {
   sendUserMessage as sendUserMessageService,
   startReview as startReviewService,
   interruptTurn as interruptTurnService,
+  engineInterruptTurn as engineInterruptTurnService,
   listMcpServerStatus as listMcpServerStatusService,
   engineSendMessage as engineSendMessageService,
   engineInterrupt as engineInterruptService,
@@ -146,6 +147,21 @@ function normalizeAccessMode(
     return engine === "codex" ? "current" : "default";
   }
   return mode;
+}
+
+function isUnknownEngineInterruptTurnMethodError(error: unknown): boolean {
+  const message = error instanceof Error
+    ? error.message
+    : typeof error === "string"
+      ? error
+      : (() => {
+          try {
+            return JSON.stringify(error);
+          } catch {
+            return String(error);
+          }
+        })();
+  return message.toLowerCase().includes("unknown method: engine_interrupt_turn");
 }
 
 function isLikelyForeignModelForGemini(modelId: string): boolean {
@@ -1640,7 +1656,7 @@ export function useThreadMessaging({
       pendingInterruptsRef.current.add(activeThreadId);
     }
 
-    // Determine if this is a Claude session
+    // Determine whether this thread is backed by a local CLI session.
     const resolvedThreadEngine = resolveThreadEngine(activeWorkspace.id, activeThreadId);
     const isCliManagedEngine = resolvedThreadEngine !== "codex";
 
@@ -1659,8 +1675,26 @@ export function useThreadMessaging({
     });
     try {
       if (isCliManagedEngine) {
-        // Claude/OpenCode: kill the local CLI process via engine_interrupt.
-        await engineInterruptService(activeWorkspace.id);
+        // Claude/OpenCode/Gemini: target only the current turn process.
+        // If turn id is not known yet, keep pending interrupt and let onTurnStarted
+        // execute a precise kill once the backend emits the real turn id.
+        if (activeTurnId) {
+          try {
+            await engineInterruptTurnService(
+              activeWorkspace.id,
+              activeTurnId,
+              resolvedThreadEngine,
+            );
+          } catch (error) {
+            if (isUnknownEngineInterruptTurnMethodError(error)) {
+              // Compatibility fallback for stale daemon/runtime that doesn't
+              // implement engine_interrupt_turn yet.
+              await engineInterruptService(activeWorkspace.id);
+            } else {
+              throw error;
+            }
+          }
+        }
       } else {
         // Codex: notify daemon via turn_interrupt RPC, plus engine_interrupt fallback.
         await Promise.allSettled([

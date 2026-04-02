@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConversationItem, WorkspaceInfo } from "../../../types";
 import { useThreadMessaging } from "./useThreadMessaging";
 import {
+  engineInterruptTurn,
   engineInterrupt,
   engineSendMessage,
   getGitLog,
@@ -44,6 +45,7 @@ vi.mock("../../../services/tauri", () => ({
   listGitBranches: vi.fn(),
   getGitLog: vi.fn(),
   engineSendMessage: vi.fn(),
+  engineInterruptTurn: vi.fn(),
   engineInterrupt: vi.fn(),
 }));
 
@@ -116,6 +118,7 @@ describe("useThreadMessaging", () => {
       output: "Imported session: ses_test",
     });
     vi.mocked(engineInterrupt).mockResolvedValue();
+    vi.mocked(engineInterruptTurn).mockResolvedValue();
     vi.mocked(interruptTurn).mockResolvedValue({});
     vi.mocked(writeClientStoreValue).mockImplementation(() => undefined);
   });
@@ -997,7 +1000,44 @@ describe("useThreadMessaging", () => {
       await result.current.interruptTurn();
     });
 
+    expect(engineInterruptTurn).toHaveBeenCalledWith("ws-1", "turn-9", "opencode");
+    expect(engineInterrupt).not.toHaveBeenCalled();
+    expect(interruptTurn).not.toHaveBeenCalled();
+  });
+
+  it("falls back to workspace interrupt when turn-scoped interrupt rpc is unavailable", async () => {
+    vi.mocked(engineInterruptTurn).mockRejectedValue(
+      new Error("unknown method: engine_interrupt_turn"),
+    );
+    const { result } = makeHook("codex", {
+      activeThreadId: "opencode:session-1",
+      ensuredThreadId: "opencode:session-1",
+      activeTurnIdByThread: { "opencode:session-1": "turn-9" },
+    });
+
+    await act(async () => {
+      await result.current.interruptTurn();
+    });
+
+    expect(engineInterruptTurn).toHaveBeenCalledWith("ws-1", "turn-9", "opencode");
     expect(engineInterrupt).toHaveBeenCalledWith("ws-1");
+    expect(interruptTurn).not.toHaveBeenCalled();
+  });
+
+  it("interrupt on cli-managed engine queues pending interrupt when turn id is not ready", async () => {
+    const { result, pendingInterruptsRef } = makeHook("claude", {
+      activeThreadId: "claude:session-1",
+      ensuredThreadId: "claude:session-1",
+      activeTurnIdByThread: {},
+    });
+
+    await act(async () => {
+      await result.current.interruptTurn();
+    });
+
+    expect(pendingInterruptsRef.current.has("claude:session-1")).toBe(true);
+    expect(engineInterruptTurn).not.toHaveBeenCalled();
+    expect(engineInterrupt).not.toHaveBeenCalled();
     expect(interruptTurn).not.toHaveBeenCalled();
   });
 
