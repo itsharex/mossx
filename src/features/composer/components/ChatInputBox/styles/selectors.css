@@ -199,6 +199,18 @@
   transition: background 0.1s;
 }
 
+.selector-option.selector-option-button {
+  border: none;
+  background: transparent;
+  width: calc(100% - 16px);
+  text-align: left;
+}
+
+.selector-option.selector-option-button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--input-focus-border) 72%, transparent);
+  outline-offset: 1px;
+}
+
 .selector-option:hover {
   background: var(--dropdown-hover-color, #EDEEF1);
 }

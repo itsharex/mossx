@@ -11,6 +11,10 @@ import Download from "lucide-react/dist/esm/icons/download";
 import Upload from "lucide-react/dist/esm/icons/upload";
 import type { CustomPromptOption, WorkspaceInfo } from "../../../../types";
 import { useCustomPrompts } from "../../../prompts/hooks/useCustomPrompts";
+import {
+  consumePendingPromptCreationRequest,
+  subscribePromptCreationRequests,
+} from "../../../prompts/promptEvents";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -141,7 +145,7 @@ export function PromptSection({
     };
   }, [filteredPrompts]);
 
-  const startCreate = (scope: "workspace" | "global") => {
+  const startCreate = useCallback((scope: "workspace" | "global") => {
     setEditor({
       mode: "create",
       scope,
@@ -151,7 +155,17 @@ export function PromptSection({
       content: "",
     });
     setError(null);
-  };
+  }, []);
+
+  useEffect(() => {
+    const pendingRequest = consumePendingPromptCreationRequest();
+    if (pendingRequest) {
+      startCreate(pendingRequest.scope);
+    }
+    return subscribePromptCreationRequests((request) => {
+      startCreate(request.scope);
+    });
+  }, [startCreate]);
 
   const startEdit = (prompt: CustomPromptOption) => {
     setEditor({

@@ -5,7 +5,7 @@ import CheckCircle2 from 'lucide-react/dist/esm/icons/check-circle-2';
 import Layers3 from 'lucide-react/dist/esm/icons/layers-3';
 import Clock3 from 'lucide-react/dist/esm/icons/clock-3';
 import Tag from 'lucide-react/dist/esm/icons/tag';
-import type { EngineType } from '../../../../../types';
+import type { EngineType } from '../../../../types';
 import type {
   AccountRateLimitsInfo,
   DropdownItemData,
