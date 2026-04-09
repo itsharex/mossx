@@ -928,25 +928,27 @@
 }
 
 .user-reference-card {
-  margin-top: 10px;
-  border: 1px solid color-mix(in srgb, var(--color-message-user-text, #ffffff) 18%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--color-message-user-text, #ffffff) 8%, transparent);
-  padding: 8px;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid color-mix(
+    in srgb,
+    var(--color-message-user-text, #ffffff) 18%,
+    transparent
+  );
 }
 
 .user-reference-card-title {
-  font-size: 11px;
-  letter-spacing: 0.04em;
+  font-size: 10px;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-message-user-text, #ffffff) 72%, transparent);
-  margin-bottom: 6px;
+  color: color-mix(in srgb, var(--color-message-user-text, #ffffff) 62%, transparent);
+  margin-bottom: 4px;
 }
 
 .user-reference-card-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 .user-reference-card-item {
@@ -954,28 +956,41 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  border: 1px solid color-mix(
-    in srgb,
-    var(--color-message-user-text, #ffffff) 16%,
-    transparent
-  );
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--color-message-user-text, #ffffff) 6%, transparent);
-  padding: 6px 8px;
+  padding: 2px 0;
 }
 
 .user-reference-card-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
+  border-radius: 5px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, #ffffff 30%, transparent) 0%,
+    color-mix(in srgb, #ffffff 20%, transparent) 100%
+  );
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, #ffffff 36%, transparent),
+    0 0 0 1px color-mix(in srgb, #000000 16%, transparent);
 }
 
 .user-reference-card-icon .file-icon {
-  width: 16px;
-  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-reference-card-icon .file-icon svg {
+  width: 14px;
+  height: 14px;
+  filter:
+    saturate(1.35)
+    contrast(1.35)
+    brightness(1.2)
+    drop-shadow(0 0 0.55px color-mix(in srgb, #000000 45%, transparent));
 }
 
 .user-reference-card-meta {
@@ -990,8 +1005,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  font-weight: 620;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .user-reference-card-parent {
@@ -1000,7 +1015,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 10px;
-  opacity: 0.82;
+  opacity: 0.72;
 }
 
 .user-file-reference {
