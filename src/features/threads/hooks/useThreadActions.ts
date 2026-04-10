@@ -8,6 +8,7 @@ import type {
 } from "../../../types";
 import {
   archiveThread as archiveThreadService,
+  deleteCodexSession as deleteCodexSessionService,
   deleteClaudeSession as deleteClaudeSessionService,
   deleteGeminiSession as deleteGeminiSessionService,
   deleteOpenCodeSession as deleteOpenCodeSessionService,
@@ -109,7 +110,25 @@ type GeminiSessionSummary = {
   sessionId: string;
   firstMessage: string;
   updatedAt: number;
+  fileSizeBytes?: number;
 };
+
+function normalizeThreadSizeBytes(value: unknown) {
+  const sizeBytes = asNumber(value);
+  return sizeBytes > 0 ? Math.round(sizeBytes) : undefined;
+}
+
+function extractThreadSizeBytes(record: Record<string, unknown>) {
+  return normalizeThreadSizeBytes(
+    record.sizeBytes ??
+      record.size_bytes ??
+      record.fileSizeBytes ??
+      record.file_size_bytes ??
+      record.byteSize ??
+      record.byte_size ??
+      record.bytes,
+  );
+}
 
 function normalizeGeminiSessionSummaries(value: unknown): GeminiSessionSummary[] {
   if (!Array.isArray(value)) {
@@ -129,6 +148,7 @@ function normalizeGeminiSessionSummaries(value: unknown): GeminiSessionSummary[]
         sessionId,
         firstMessage: asString(record.firstMessage).trim(),
         updatedAt: asNumber(record.updatedAt),
+        fileSizeBytes: extractThreadSizeBytes(record),
       } satisfies GeminiSessionSummary;
     })
     .filter((entry): entry is GeminiSessionSummary => entry !== null);
@@ -159,6 +179,7 @@ function mergeGeminiSessionSummaries(
         getCustomName(workspaceId, id) ||
         previewThreadName(session.firstMessage, "Gemini Session"),
       updatedAt,
+      sizeBytes: session.fileSizeBytes,
       engineSource: "gemini",
     };
     if (!prev || next.updatedAt >= prev.updatedAt) {
@@ -1423,6 +1444,7 @@ export function useThreadActions({
               id,
               name,
               updatedAt: getThreadTimestamp(thread),
+              sizeBytes: extractThreadSizeBytes(thread),
               engineSource,
               ...sourceMeta,
             };
@@ -1434,7 +1456,7 @@ export function useThreadActions({
         // so codex/claude thread list latency stays isolated from Gemini I/O scans.
         let allSummaries: ThreadSummary[] = summaries;
         const mergedById = new Map<string, ThreadSummary>();
-        summaries.forEach((entry) => mergedById.set(entry.id, entry));
+        allSummaries.forEach((entry) => mergedById.set(entry.id, entry));
         const [claudeResult, opencodeResult] = await Promise.allSettled([
           listClaudeSessionsService(workspace.path, 50),
           getOpenCodeSessionListService(workspace.id),
@@ -1448,6 +1470,7 @@ export function useThreadActions({
               sessionId: string;
               firstMessage: string;
               updatedAt: number;
+              fileSizeBytes?: number;
             }) => {
               const id = `claude:${session.sessionId}`;
               const prev = mergedById.get(id);
@@ -1459,6 +1482,7 @@ export function useThreadActions({
                   getCustomName(workspace.id, id) ||
                   previewThreadName(session.firstMessage, "Claude Session"),
                 updatedAt,
+                sizeBytes: normalizeThreadSizeBytes(session.fileSizeBytes),
                 engineSource: "claude",
               };
               if (!prev || next.updatedAt >= prev.updatedAt) {
@@ -1494,6 +1518,7 @@ export function useThreadActions({
                 getCustomName(workspace.id, id) ||
                 previewThreadName(session.title, "OpenCode Session"),
               updatedAt,
+              sizeBytes: extractThreadSizeBytes(session as Record<string, unknown>),
               engineSource: "opencode",
             };
             if (!prev || next.updatedAt >= prev.updatedAt) {
@@ -1743,6 +1768,7 @@ export function useThreadActions({
             id,
             name,
             updatedAt: getThreadTimestamp(thread),
+            sizeBytes: extractThreadSizeBytes(thread),
             ...resolveThreadSourceMeta(thread),
           });
           existingIds.add(id);
@@ -1865,9 +1891,9 @@ export function useThreadActions({
         await deleteGeminiSessionService(workspacePath, sessionId);
         return;
       }
-      await archiveThread(workspaceId, threadId);
+      await deleteCodexSessionService(workspaceId, threadId);
     },
-    [archiveClaudeThread, archiveThread],
+    [archiveClaudeThread],
   );
 
   const renameThreadTitleMapping = useCallback(

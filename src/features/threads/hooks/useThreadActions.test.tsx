@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ConversationItem, WorkspaceInfo } from "../../../types";
 import {
   archiveThread,
+  deleteCodexSession,
   deleteClaudeSession,
   deleteGeminiSession,
   deleteOpenCodeSession,
@@ -50,6 +51,7 @@ vi.mock("../../../services/tauri", () => ({
   resumeThread: vi.fn(),
   listThreads: vi.fn(),
   archiveThread: vi.fn(),
+  deleteCodexSession: vi.fn(),
   deleteClaudeSession: vi.fn(),
   deleteGeminiSession: vi.fn(),
   deleteOpenCodeSession: vi.fn(),
@@ -93,6 +95,12 @@ describe("useThreadActions", () => {
     vi.mocked(deleteOpenCodeSession).mockResolvedValue({
       deleted: true,
       method: "filesystem",
+    });
+    vi.mocked(deleteCodexSession).mockResolvedValue({
+      deleted: true,
+      deletedCount: 1,
+      method: "filesystem",
+      archivedBeforeDelete: true,
     });
     vi.mocked(loadGeminiSession).mockResolvedValue({ messages: [] });
   });
@@ -845,6 +853,7 @@ describe("useThreadActions", () => {
             cwd: "/tmp/codex",
             preview: "Remote preview",
             updated_at: 5000,
+            size_bytes: 4096,
           },
           {
             id: "thread-2",
@@ -885,6 +894,7 @@ describe("useThreadActions", () => {
           id: "thread-1",
           name: "Custom",
           updatedAt: 5000,
+          sizeBytes: 4096,
           engineSource: "codex",
         },
       ],
@@ -1490,6 +1500,20 @@ describe("useThreadActions", () => {
 
     expect(archiveThread).not.toHaveBeenCalled();
     expect(deleteOpenCodeSession).toHaveBeenCalledWith("ws-1", "ses_opc_1");
+  });
+
+  it("routes codex delete to filesystem delete instead of archive", async () => {
+    const { result } = renderActions();
+
+    await act(async () => {
+      await result.current.deleteThreadForWorkspace("ws-1", "019d767b-5541-7010-a30d-a454864bccd8");
+    });
+
+    expect(archiveThread).not.toHaveBeenCalled();
+    expect(deleteCodexSession).toHaveBeenCalledWith(
+      "ws-1",
+      "019d767b-5541-7010-a30d-a454864bccd8",
+    );
   });
 
   it("keeps deleted claude sessions absent after reload", async () => {

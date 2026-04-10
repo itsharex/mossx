@@ -1733,6 +1733,54 @@ impl DaemonState {
         codex_core::archive_thread_core(&self.sessions, workspace_id, thread_id).await
     }
 
+    pub(super) async fn delete_codex_session(
+        &self,
+        workspace_id: String,
+        session_id: String,
+    ) -> Result<Value, String> {
+        let normalized_session_id = session_id.trim().to_string();
+        if normalized_session_id.is_empty() {
+            return Err("session_id is required".to_string());
+        }
+
+        let archive_result = codex_core::archive_thread_core(
+            &self.sessions,
+            workspace_id.clone(),
+            normalized_session_id.clone(),
+        )
+        .await;
+        if let Err(error) = &archive_result {
+            log::debug!(
+                "[daemon delete_codex_session] Best-effort archive skipped for workspace {} session {}: {}",
+                workspace_id,
+                normalized_session_id,
+                error
+            );
+        }
+
+        let deleted_count = local_usage::delete_codex_session_for_workspace(
+            &self.workspaces,
+            &workspace_id,
+            &normalized_session_id,
+        )
+        .await?;
+
+        let session = {
+            let sessions = self.sessions.lock().await;
+            sessions.get(&workspace_id).cloned()
+        };
+        if let Some(session) = session {
+            session.clear_thread_effective_mode(&normalized_session_id).await;
+        }
+
+        Ok(json!({
+            "deleted": deleted_count > 0,
+            "deletedCount": deleted_count,
+            "method": "filesystem",
+            "archivedBeforeDelete": archive_result.is_ok(),
+        }))
+    }
+
     pub(super) async fn send_user_message(
         &self,
         workspace_id: String,
