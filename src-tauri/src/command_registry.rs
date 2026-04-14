@@ -245,6 +245,7 @@ pub(crate) fn invoke_handler(
         crate::input_history::input_history_record,
         crate::input_history::input_history_delete,
         crate::input_history::input_history_clear,
+        crate::startup_guard::bootstrap_mark_renderer_ready,
         // Vendors
         crate::vendors::vendor_get_claude_providers,
         crate::vendors::vendor_get_current_claude_config,

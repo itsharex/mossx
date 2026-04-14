@@ -44,6 +44,7 @@ mod runtime_log;
 mod settings;
 mod shared;
 mod skills;
+mod startup_guard;
 mod state;
 mod storage;
 mod terminal;
@@ -62,6 +63,31 @@ pub fn run() {
         // Avoid WebKit compositing issues on NVIDIA Linux setups (GBM buffer errors).
         if std::env::var_os("__NV_PRIME_RENDER_OFFLOAD").is_none() {
             std::env::set_var("__NV_PRIME_RENDER_OFFLOAD", "1");
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        match startup_guard::prepare_launch() {
+            Ok(decision) => {
+                if decision.enable_webview2_compat_mode {
+                    startup_guard::apply_webview2_compat_env();
+                    log::warn!(
+                        "WebView2 compatibility mode enabled after {} consecutive unready launches",
+                        decision.consecutive_unready_launches
+                    );
+                }
+                if decision.enable_webview2_gpu_fallback {
+                    startup_guard::apply_webview2_gpu_fallback_env();
+                    log::warn!(
+                        "WebView2 GPU fallback enabled after {} consecutive unready launches",
+                        decision.consecutive_unready_launches
+                    );
+                }
+            }
+            Err(error) => {
+                log::warn!("Failed to prepare startup guard: {error}");
+            }
         }
     }
 

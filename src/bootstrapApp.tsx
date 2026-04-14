@@ -80,6 +80,21 @@ function resolveRootElement() {
   return root;
 }
 
+async function markRendererReady() {
+  try {
+    const { invoke, isTauri } = await import("@tauri-apps/api/core");
+    if (!isTauri()) {
+      return;
+    }
+    await invoke("bootstrap_mark_renderer_ready");
+    appendRendererDiagnostic("bootstrap/renderer-ready-marked");
+  } catch (error) {
+    appendRendererDiagnostic("bootstrap/renderer-ready-mark-failed", {
+      error: error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    });
+  }
+}
+
 async function bootstrap() {
   appendRendererDiagnostic("bootstrap/start");
   await preloadClientStores();
@@ -107,6 +122,7 @@ async function bootstrap() {
     </React.StrictMode>,
   );
   appendRendererDiagnostic("bootstrap/render-committed");
+  void markRendererReady();
 }
 
 export async function startApp() {
