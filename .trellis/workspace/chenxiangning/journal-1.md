@@ -417,3 +417,58 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: 补录：同步回溯 specs 并归档变更
+
+**Date**: 2026-04-17
+**Task**: 补录：同步回溯 specs 并归档变更
+**Branch**: `feature/vvvv0.4.3`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标
+- 将 rewind-mutation-only-file-selection 的 delta specs 合入主 specs，并执行正式归档。
+
+主要改动
+- 更新 claude-rewind-review-surface 主 spec，补入 anchor-bounded、mutation-only、三态策略选择规则。
+- 更新 codex-rewind-review-surface 主 spec，补入三态策略与执行安全语义。
+- 更新 conversation-tool-card-persistence 主 spec，补入 rewind file identity 的锚点尾段与 mutation 优先约束。
+- 将变更目录归档到 openspec/changes/archive/2026-04-17-rewind-mutation-only-file-selection。
+
+涉及模块
+- openspec/specs/claude-rewind-review-surface/spec.md
+- openspec/specs/codex-rewind-review-surface/spec.md
+- openspec/specs/conversation-tool-card-persistence/spec.md
+- openspec/changes/archive/2026-04-17-rewind-mutation-only-file-selection
+
+验证结果
+- openspec change artifacts 全部 done。
+- tasks.md 全部已完成。
+- 已确认 archive 目录内容完整。
+
+后续事项
+- 删除活动 change 目录，确保 archive 为单一事实源。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `8b5114f` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
