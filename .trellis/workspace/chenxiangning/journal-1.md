@@ -1587,3 +1587,53 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 29: 纳入 thread not found 会话恢复卡片
+
+**Date**: 2026-04-19
+**Task**: 纳入 thread not found 会话恢复卡片
+**Branch**: `feature/vvvv0.4.3`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：将 thread not found / SESSION_NOT_FOUND 类会话启动失败纳入消息区恢复卡片，并复用现有线程恢复链路。
+
+主要改动：
+- 扩展 src/features/messages/components/runtimeReconnect.ts 的错误识别，新增 thread-not-found 分类并收紧前缀匹配，避免解释性文本误判。
+- 更新 src/features/messages/components/RuntimeReconnectCard.tsx，在 thread-not-found 场景下直接调用 onRecoverThreadRuntime，保留原有 runtime reconnect 分支。
+- 补充中英文 threadRecovery 文案，避免回归 broken pipe / workspace not connected 既有交互。
+- 新增与修正消息恢复卡片相关单测，覆盖恢复成功、误判防护与兼容分支。
+
+涉及模块：messages、i18n。
+
+验证结果：
+- pnpm vitest run src/features/messages/components/runtimeReconnect.test.ts src/features/messages/components/Messages.runtime-reconnect.test.tsx
+- pnpm eslint src/features/messages/components/runtimeReconnect.ts src/features/messages/components/RuntimeReconnectCard.tsx src/features/messages/components/runtimeReconnect.test.ts src/features/messages/components/Messages.runtime-reconnect.test.tsx src/i18n/locales/zh.part1.ts src/i18n/locales/en.part1.ts
+- pnpm tsc --noEmit
+- npm run check:large-files
+
+后续事项：建议在本地手动复现一次会话启动失败，确认幕布里出现 thread recovery 卡片且点击后能恢复当前会话。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `99e82f29` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
