@@ -1241,3 +1241,68 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 23: 修复运行时重连与线程事件边界处理
+
+**Date**: 2026-04-19
+**Task**: 修复运行时重连与线程事件边界处理
+**Branch**: `feature/vvvv0.4.3`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 审查当前工作区与运行时重连、线程事件处理相关的改动，重点检查边界条件、兼容性和大文件治理约束。
+- 直接修复确认存在的问题，并完成本地验证后提交。
+
+主要改动:
+- 统一 Messages 中 runtime reconnect hint 的解析入口，消除列表去重与单条消息渲染使用不同文本来源导致的卡片错位风险。
+- 完善 RuntimeReconnectCard 错误分支，对线程级恢复回调返回 null 的情况输出明确提示，并同步补齐中英文 i18n 文案。
+- 将 runtime reconnect 测试从超长的 Messages.test.tsx 中拆分为独立测试文件，回落主测试文件体量并补充 Windows pipe、无 workspace、兼容模式与恢复失败场景。
+- 保留并提交 useThreadEventHandlers 诊断增强及其回归测试，覆盖 stalled-after-first-delta、默认静默、stale turn 忽略、interrupted thread 忽略等边界行为。
+- 纳入 layout 与运行时池设置页相关接线改动，保证当前 UI 链路仍能触达线程级 runtime 恢复能力。
+
+涉及模块:
+- src/features/messages/components/**
+- src/features/threads/hooks/**
+- src/features/layout/hooks/useLayoutNodes.tsx
+- src/app-shell-parts/useAppShellLayoutNodesSection.tsx
+- src/features/settings/components/settings-view/sections/RuntimePoolSection.tsx
+- src/i18n/locales/en.part1.ts
+- src/i18n/locales/zh.part1.ts
+
+验证结果:
+- 通过: npx vitest run src/features/messages/components/Messages.runtime-reconnect.test.tsx src/features/messages/components/Messages.test.tsx src/features/threads/hooks/useThreadEventHandlers.test.ts
+- 通过: npx vitest run src/features/messages/components/Messages.runtime-reconnect.test.tsx src/features/messages/components/Messages.test.tsx
+- 通过: npm run typecheck
+- 检查: npm run check:large-files
+  结果显示本次治理已将 Messages.test.tsx 降回 3000 行阈值内，但仓库仍存在历史超限文件 useThreadActions.ts / useThreadActions.test.tsx。
+- 检查: npm run check:large-files:near-threshold
+  结果显示 Messages.tsx 与 Messages.test.tsx 仍处于 near-threshold 观察区。
+
+后续事项:
+- 后续可继续治理 useThreadActions.ts 与 useThreadActions.test.tsx 的大文件问题。
+- 若用户继续验证 runtime 会话恢复流程，可围绕 thread recover 失败后的 reopen/new session 路径再补真实交互回归用例。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `431a462b19a7c3832ee3ba2a0ed6c612ca2604cf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
