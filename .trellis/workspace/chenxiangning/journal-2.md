@@ -1356,3 +1356,59 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 59: 补强线程恢复诊断与会话降级承接
+
+**Date**: 2026-04-20
+**Task**: 补强线程恢复诊断与会话降级承接
+**Branch**: `feature/vvvv0.4.5`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标
+- 将当前工作区中 threads/messages/reconnect/compact/diagnostics 相关改动收束成一次独立业务提交，避免与 runtime backend 与 OpenSpec 文档混杂。
+
+主要改动
+- 统一 runtime reconnect 与 thread stability diagnostics 的识别和 correlation 字段，补齐 reconnect/recovery 语义承接。
+- 为 thread list、sidebar snapshot、workspace restore 增加 last-good continuity 与 degraded fallback，避免刷新失败时丢失已有健康列表。
+- 在线程列表与相关 UI 中显式标记 degraded/partial 状态，并补齐中英文 copy。
+- 扩展 Messages、thread hooks 与 reconnect card，对 Claude 手动 /compact、context compacting、runtime quarantined 等场景给出一致的前端生命周期反馈。
+- 镜像 thread/list、thread/history、workspace/reconnect 调试事件到 thread session log，并新增 threadDebugCorrelation helper。\n- 修复 Gemini history 恢复中的 output language hint 残留问题，并补齐多处前端回归测试。
+
+涉及模块
+- src/features/**
+- src/app-shell.tsx
+- src/i18n/locales/en.part1.ts
+- src/i18n/locales/zh.part1.ts
+- src/styles/sidebar.css
+- src/types.ts
+
+验证结果
+- 本次仅进行提交整理，未额外执行新的自动化验证。
+
+后续事项
+- 剩余 OpenSpec 文档同步将作为最后一条独立提交补齐。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d37f2357a43f3959cef13aa7821a700932ad8020` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
