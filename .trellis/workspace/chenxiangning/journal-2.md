@@ -1240,3 +1240,67 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 57: 加固 runtime 恢复与 Claude 手动压缩边界处理
+
+**Date**: 2026-04-20
+**Task**: 加固 runtime 恢复与 Claude 手动压缩边界处理
+**Branch**: `feature/vvvv0.4.5`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标
+- 对当前工作区进行高风险 review，重点排查边界条件、runtime 恢复链路、Claude 手动 /compact 流程以及跨平台相关隐患。
+- 修复 review 中确认的 P1 级问题，并补充最小回归验证。
+
+主要改动
+- 为 runtime acquire 引入 token 化 gate、超时退避、隔离与 stale takeover，避免并发恢复被僵死 leader 长时间卡住。
+- 修复 ensure_codex_session 在 workspace 被并发删除时未释放 acquire gate 的问题，补充缺失 workspace 后应释放 gate 的回归测试。
+- 修复 connect_workspace_core 在无 runtime manager 场景下 spawn 失败会无限重试的问题，改为直接返回错误。
+- 为 Claude 线程接入手动 /compact 通路，在 Tauri 与 daemon 端补齐 compacting、compacted、compactionFailed 事件桥接。
+- 扩展前端稳定性诊断，识别被包装的 turn failed / context compaction failed 错误，避免遗漏重连与恢复提示。
+
+涉及模块
+- src-tauri/src/runtime/mod.rs
+- src-tauri/src/shared/workspaces_core.rs
+- src-tauri/src/codex/session_runtime.rs
+- src-tauri/src/codex/mod.rs
+- src-tauri/src/bin/cc_gui_daemon/daemon_state.rs
+- src/features/threads/hooks/useQueuedSend.ts
+- src/features/threads/hooks/useThreadMessaging.ts
+- src/features/threads/utils/stabilityDiagnostics.ts
+- src/features/threads/utils/stabilityDiagnostics.test.ts
+- src/features/messages/components/runtimeReconnect.test.ts
+
+验证结果
+- cargo test --manifest-path src-tauri/Cargo.toml missing_workspace_after_acquire_releases_runtime_gate -- --nocapture 通过
+- cargo test --manifest-path src-tauri/Cargo.toml connect_workspace_without_runtime_manager_returns_spawn_error -- --nocapture 通过
+- 之前同一轮已验证 targeted runtime / reconnect 相关测试通过，未新增失败案例
+
+后续事项
+- 继续观察 Messages / Threads 相关大文件拆分节奏，尤其是接近 3000 行阈值的 hook 与组件。
+- 后续如果继续收敛 Claude /compact 交互，建议同步补前端行为测试，覆盖 pending thread 与手动 compact 重复触发场景。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a94b46f984e0543572c65d5b3ae33ada9cadd7db` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
