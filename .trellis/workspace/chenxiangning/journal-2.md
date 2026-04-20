@@ -701,3 +701,69 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 48: 修复会话管理边界校验与列表刷新
+
+**Date**: 2026-04-20
+**Task**: 修复会话管理边界校验与列表刷新
+**Branch**: `feature/vvvv0.4.5`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：
+- Review git 9ae15f9e637124d3c67f5f54bcf418af2f2b37f6 之后的所有变更，重点检查边界条件、功能准确性、大文件治理和 Windows/macOS 兼容性。
+- 发现问题后直接修复，并按 Conventional Commits 中文提交。
+
+主要改动：
+- 修复 session_id 为 "." 时可绕过路径校验的问题，避免 Path::join(".") 在删除逻辑中指向 sessions 根目录。
+- 统一 Codex/OpenCode 会话读取、删除、归一化入口的 path segment 校验，拒绝空值、"."、"/"、"\\" 和 ".."。
+- 修复项目模式删除 related sessions 成功后列表不刷新的问题，避免 UI 残留已删除会话。
+- 修复 updatedAt 为 0 或非法值时显示 1970 时间的问题，统一展示为 "--"。
+- 补充前端与 Rust 回归测试，覆盖 related 删除刷新、缺失时间戳展示和非法 session_id。
+- 将 filesystem path segment 参数校验规则沉淀到 backend error-handling code-spec。
+
+涉及模块：
+- backend session management / local usage / daemon engine bridge
+- frontend settings session management section
+- backend code-spec error handling
+
+验证结果：
+- npm run typecheck：通过
+- npx vitest run src/features/settings/components/settings-view/hooks/useWorkspaceSessionCatalog.test.tsx src/features/settings/components/settings-view/sections/SessionManagementSection.test.tsx src/services/tauri.test.ts：通过
+- npx vitest run src/features/settings/components/settings-view/sections/SessionManagementSection.test.tsx：通过
+- npm run lint：通过，0 errors，存在既有 warnings
+- npm run check:large-files:near-threshold：通过，仅提示 near-threshold 文件
+- npm run check:large-files:gate：通过，无 >3000 行文件
+- npm run check:runtime-contracts：通过
+- cargo fmt --manifest-path src-tauri/Cargo.toml：通过
+- cargo test --manifest-path src-tauri/Cargo.toml session_management -- --nocapture：通过
+- cargo test --manifest-path src-tauri/Cargo.toml opencode_session_id_rejects_path_like_segments -- --nocapture：通过
+- git diff --check：通过
+- npm run doctor:strict：未通过，卡在既有 check:branding，命中仓库中已有 codemoss / mossx-* branding 字符串；本次未混入大范围品牌清理。
+
+后续事项：
+- 如需彻底通过 doctor:strict，需要单独规划 branding 清理任务，避免和本次 session 管理修复混杂。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5cd53303` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
