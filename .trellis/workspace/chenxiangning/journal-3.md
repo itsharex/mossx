@@ -607,3 +607,58 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 79: 补充 Codex 启动配置与 unified_exec OpenSpec 提案
+
+**Date**: 2026-04-21
+**Task**: 补充 Codex 启动配置与 unified_exec OpenSpec 提案
+**Branch**: `feature/f-v0.4.6`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：
+- 将剩余未提交的 OpenSpec 文档按主题整理并提交。
+- 为 Launch Configuration、official unified_exec config actions、Windows runtime churn 三条线补齐 proposal/design/tasks/spec。
+
+主要改动：
+- 新增 add-codex-structured-launch-profile 变更，定义 Codex 启动配置的目标、边界、预览与 doctor 对齐要求。
+- 新增 add-unified-exec-official-config-actions 变更，定义 explicit official config action lane 的行为边界。
+- 新增 mitigate-windows-codex-runtime-churn 变更，整理 recovery guard、diagnostics 和 rollout 计划。
+- 各 change 均补齐 proposal、design、tasks 与 capability spec，便于后续 task/实现映射。
+
+涉及模块：
+- openspec/changes/add-codex-structured-launch-profile/**
+- openspec/changes/add-unified-exec-official-config-actions/**
+- openspec/changes/mitigate-windows-codex-runtime-churn/**
+
+验证结果：
+- 提交前 git status 仅剩这三组 OpenSpec 文档目录
+- 提交后 record mode 显示工作区 Clean
+
+后续事项：
+- 可基于这些 change 继续创建或推进对应 Trellis task。
+- 如后续开始实现 launch profile / windows churn 收敛，需要同步更新 code spec 与 targeted tests。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `57b9f214e06c96bfb513e870b79ed8d3744ed32e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
