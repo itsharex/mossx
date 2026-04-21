@@ -22,6 +22,51 @@ describe("Messages live behavior", () => {
     }
   });
 
+  const getMessagesScroller = (container: HTMLElement) => {
+    const scroller = container.querySelector(".messages");
+    expect(scroller).toBeTruthy();
+    return scroller as HTMLDivElement;
+  };
+
+  const setScrollerMetrics = (scroller: HTMLDivElement, scrollTop: number) => {
+    Object.defineProperty(scroller, "scrollTop", {
+      configurable: true,
+      writable: true,
+      value: scrollTop,
+    });
+    Object.defineProperty(scroller, "clientHeight", {
+      configurable: true,
+      value: 720,
+    });
+    Object.defineProperty(scroller, "scrollHeight", {
+      configurable: true,
+      value: 2400,
+    });
+  };
+
+  const setMessageOffsetTop = (
+    container: HTMLElement,
+    messageId: string,
+    offsetTop: number,
+  ) => {
+    const node = container.querySelector(`[data-message-anchor-id="${messageId}"]`);
+    expect(node).toBeTruthy();
+    Object.defineProperty(node as HTMLDivElement, "offsetTop", {
+      configurable: true,
+      get: () => offsetTop,
+    });
+  };
+
+  const scrollMessages = async (scroller: HTMLDivElement, scrollTop: number) => {
+    act(() => {
+      setScrollerMetrics(scroller, scrollTop);
+      fireEvent.scroll(scroller);
+    });
+    await waitFor(() => {
+      expect(scroller.scrollTop).toBe(scrollTop);
+    });
+  };
+
   it("keeps only the latest title-only reasoning row for non-codex engines", () => {
     const items: ConversationItem[] = [
       {
@@ -532,7 +577,7 @@ describe("Messages live behavior", () => {
 
     const stickyNodes = container.querySelectorAll(".messages-live-sticky-user-message");
     expect(stickyNodes).toHaveLength(1);
-    expect(container.querySelectorAll(".messages-history-sticky-user-message")).toHaveLength(0);
+    expect(container.querySelector(".messages-history-sticky-header")).toBeNull();
     expect(stickyNodes[0]?.getAttribute("data-message-anchor-id")).toBe(
       "user-live-sticky-latest",
     );
@@ -654,7 +699,7 @@ describe("Messages live behavior", () => {
     expect(container.querySelector(".messages-live-sticky-user-message")).toBeNull();
   });
 
-  it("pins ordinary user questions as section headers during non-realtime history browsing", () => {
+  it("uses a compact history sticky header that follows scroll position without early switching", async () => {
     const items: ConversationItem[] = [
       {
         id: "user-history-sticky-1",
@@ -693,15 +738,49 @@ describe("Messages live behavior", () => {
       />,
     );
 
-    const stickyNodes = container.querySelectorAll(".messages-history-sticky-user-message");
-    expect(stickyNodes).toHaveLength(2);
     expect(container.querySelectorAll(".messages-live-sticky-user-message")).toHaveLength(0);
-    expect(
-      Array.from(stickyNodes).map((node) => node.getAttribute("data-message-anchor-id")),
-    ).toEqual(["user-history-sticky-1", "user-history-sticky-2"]);
+    const scroller = getMessagesScroller(container);
+    setMessageOffsetTop(container, "user-history-sticky-1", 18);
+    setMessageOffsetTop(container, "user-history-sticky-2", 260);
+
+    await scrollMessages(scroller, 18);
+    await waitFor(() => {
+      const stickyHeader = container.querySelector(".messages-history-sticky-header");
+      expect(stickyHeader?.getAttribute("data-history-sticky-message-id")).toBe(
+        "user-history-sticky-1",
+      );
+      expect(stickyHeader?.textContent ?? "").toContain("第一个历史问题");
+    });
+
+    await scrollMessages(scroller, 240);
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector(".messages-history-sticky-header")
+          ?.getAttribute("data-history-sticky-message-id"),
+      ).toBe("user-history-sticky-1");
+    });
+
+    await scrollMessages(scroller, 260);
+    await waitFor(() => {
+      const stickyHeader = container.querySelector(".messages-history-sticky-header");
+      expect(stickyHeader?.getAttribute("data-history-sticky-message-id")).toBe(
+        "user-history-sticky-2",
+      );
+      expect(stickyHeader?.textContent ?? "").toContain("第二个历史问题");
+    });
+
+    await scrollMessages(scroller, 120);
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector(".messages-history-sticky-header")
+          ?.getAttribute("data-history-sticky-message-id"),
+      ).toBe("user-history-sticky-1");
+    });
   });
 
-  it("uses history sticky headers for restored history snapshots instead of live sticky", () => {
+  it("uses history sticky headers for restored history snapshots instead of live sticky", async () => {
     const restoredItems: ConversationItem[] = [
       {
         id: "user-history-sticky-restored",
@@ -744,11 +823,17 @@ describe("Messages live behavior", () => {
     );
 
     expect(container.querySelector(".messages-live-sticky-user-message")).toBeNull();
-    expect(
-      container
-        .querySelector(".messages-history-sticky-user-message")
-        ?.getAttribute("data-message-anchor-id"),
-    ).toBe("user-history-sticky-restored");
+    const scroller = getMessagesScroller(container);
+    setMessageOffsetTop(container, "user-history-sticky-restored", 24);
+
+    await scrollMessages(scroller, 24);
+    await waitFor(() => {
+      expect(
+        container
+          .querySelector(".messages-history-sticky-header")
+          ?.getAttribute("data-history-sticky-message-id"),
+      ).toBe("user-history-sticky-restored");
+    });
   });
 
   it("does not pin memory-only injected user payloads as the latest live question", () => {
@@ -793,7 +878,7 @@ describe("Messages live behavior", () => {
     ).toBe("user-live-real-question");
   });
 
-  it("excludes pseudo-user rows from history sticky headers", () => {
+  it("excludes pseudo-user rows from history sticky headers", async () => {
     const items: ConversationItem[] = [
       {
         id: "user-history-real-question",
@@ -837,11 +922,17 @@ describe("Messages live behavior", () => {
       />,
     );
 
-    const stickyNodes = container.querySelectorAll(".messages-history-sticky-user-message");
-    expect(stickyNodes).toHaveLength(1);
-    expect(stickyNodes[0]?.getAttribute("data-message-anchor-id")).toBe(
-      "user-history-real-question",
-    );
+    const scroller = getMessagesScroller(container);
+    setMessageOffsetTop(container, "user-history-real-question", 20);
+
+    await scrollMessages(scroller, 20);
+    await waitFor(() => {
+      const stickyHeader = container.querySelector(".messages-history-sticky-header");
+      expect(stickyHeader?.getAttribute("data-history-sticky-message-id")).toBe(
+        "user-history-real-question",
+      );
+      expect(stickyHeader?.textContent ?? "").toContain("真正的历史问题");
+    });
   });
 
   it("does not create phantom history sticky headers for collapsed hidden user questions", () => {
@@ -871,7 +962,7 @@ describe("Messages live behavior", () => {
       />,
     );
 
-    expect(container.querySelector(".messages-history-sticky-user-message")).toBeNull();
+    expect(container.querySelector(".messages-history-sticky-header")).toBeNull();
     expect(container.querySelector(".messages-collapsed-indicator")).toBeTruthy();
   });
 

@@ -6,12 +6,12 @@ The conversation canvas SHALL keep the ordinary user question for the current hi
 #### Scenario: downward scrolling keeps the current section question pinned
 - **WHEN** the user scrolls downward through completed conversation history
 - **AND** the viewport is currently within the response section that belongs to an ordinary user question
-- **THEN** that ordinary user question SHALL remain pinned at the top of the message viewport
+- **THEN** a condensed sticky header for that ordinary user question SHALL remain pinned at the top of the message viewport
 - **AND** assistant, reasoning, and tool content for the same section SHALL continue scrolling underneath it
 
 #### Scenario: upward scrolling restores the previous section question
 - **WHEN** the user scrolls upward into a previous completed history section
-- **THEN** the ordinary user question for that previous section SHALL become the pinned top header again
+- **THEN** the condensed sticky header for that previous section SHALL become the pinned top header again
 - **AND** the pinning rule SHALL remain symmetrical with downward scrolling
 
 ### Requirement: Sticky Handoff SHALL Follow Physical Scroll Position Only
@@ -53,3 +53,8 @@ History section-header pinning SHALL remain a display-layer capability and SHALL
 - **WHEN** history section-header pinning is active
 - **THEN** the system SHALL NOT require new Tauri commands, runtime events, storage fields, or history loader payload fields
 - **AND** copy actions SHALL remain bound to the original displayed user message text
+
+#### Scenario: long history user bubbles do not pin their full rich-content body
+- **WHEN** an ordinary user question contains long text, references cards, or other rich-content blocks
+- **THEN** history pinning SHALL render only a condensed sticky header summary at the top boundary
+- **AND** the original full user bubble SHALL remain in the normal scroll flow

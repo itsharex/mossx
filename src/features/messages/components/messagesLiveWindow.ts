@@ -4,7 +4,7 @@ import { parseAgentTaskNotification } from "../utils/agentTaskNotification";
 import type { MessageConversationItem } from "./messageItemPredicates";
 import { resolveUserMessagePresentation } from "./messagesUserPresentation";
 
-function resolveStickyCandidateUserText(
+export function resolveOrdinaryUserStickyText(
   item: MessageConversationItem,
   enableCollaborationBadge: boolean,
 ) {
@@ -25,7 +25,7 @@ export function isOrdinaryUserQuestionItem(
   }
   return (
     !parseAgentTaskNotification(item.text) &&
-    resolveStickyCandidateUserText(item, enableCollaborationBadge).length > 0
+    resolveOrdinaryUserStickyText(item, enableCollaborationBadge).length > 0
   );
 }
 

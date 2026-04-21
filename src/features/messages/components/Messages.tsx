@@ -66,6 +66,7 @@ import {
   collapseExpandedExploreItems,
   findLatestOrdinaryUserQuestionId,
   isOrdinaryUserQuestionItem,
+  resolveOrdinaryUserStickyText,
   resolveLiveAutoExpandedExploreId,
 } from "./messagesLiveWindow";
 import {
@@ -294,6 +295,15 @@ const CLAUDE_RENDER_DEBUG_FLAG_KEY = "ccgui.debug.claude.render";
 const MESSAGES_SLOW_RENDER_WARN_MS = 18;
 const MESSAGES_SLOW_ANCHOR_WARN_MS = 8;
 const VISIBLE_MESSAGE_WINDOW = 30;
+
+type HistoryStickyCandidate = {
+  id: string;
+  text: string;
+};
+
+function normalizeHistoryStickyHeaderText(text: string) {
+  return text.replace(/\s+/g, " ").trim();
+}
 
 function isMessagesPerfDebugEnabled(): boolean {
   if (!import.meta.env.DEV) {
@@ -1373,6 +1383,7 @@ export const Messages = memo(function Messages({
   const agentTaskNodeByToolUseIdRef = useRef<Map<string, HTMLDivElement>>(new Map());
   const autoScrollRef = useRef(true);
   const anchorUpdateRafRef = useRef<number | null>(null);
+  const historyStickyUpdateRafRef = useRef<number | null>(null);
   const lastRenderSnapshotRef = useRef<{
     items: ConversationItem[];
     userInputRequests: RequestUserInputRequest[];
@@ -1388,6 +1399,7 @@ export const Messages = memo(function Messages({
   >({});
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [activeAnchorId, setActiveAnchorId] = useState<string | null>(null);
+  const [activeHistoryStickyMessageId, setActiveHistoryStickyMessageId] = useState<string | null>(null);
   const [showAllHistoryItems, setShowAllHistoryItems] = useState(false);
   const [liveAutoFollowEnabled, setLiveAutoFollowEnabled] = useState(() =>
     readLocalBooleanFlag(MESSAGES_LIVE_AUTO_FOLLOW_FLAG_KEY, true),
@@ -2099,18 +2111,39 @@ export const Messages = memo(function Messages({
       timelineItems,
     ],
   );
-  const historyStickyUserMessageIds = useMemo(() => {
+  const historyStickyCandidates = useMemo(() => {
     if (!historyStickyEnabled) {
-      return new Set<string>();
+      return [] as HistoryStickyCandidate[];
     }
-    const stickyIds = new Set<string>();
+    const candidates: HistoryStickyCandidate[] = [];
     for (const item of renderedItems) {
-      if (isOrdinaryUserQuestionItem(item, enableCollaborationBadge)) {
-        stickyIds.add(item.id);
+      if (!isOrdinaryUserQuestionItem(item, enableCollaborationBadge)) {
+        continue;
       }
+      const text = normalizeHistoryStickyHeaderText(
+        resolveOrdinaryUserStickyText(item, enableCollaborationBadge),
+      );
+      if (!text) {
+        continue;
+      }
+      candidates.push({
+        id: item.id,
+        text,
+      });
     }
-    return stickyIds;
+    return candidates;
   }, [enableCollaborationBadge, historyStickyEnabled, renderedItems]);
+  const historyStickyCandidateById = useMemo(
+    () => new Map(historyStickyCandidates.map((candidate) => [candidate.id, candidate])),
+    [historyStickyCandidates],
+  );
+  const activeHistoryStickyCandidate = useMemo(
+    () =>
+      activeHistoryStickyMessageId
+        ? historyStickyCandidateById.get(activeHistoryStickyMessageId) ?? null
+        : null,
+    [activeHistoryStickyMessageId, historyStickyCandidateById],
+  );
   const messageAnchors = useMemo(() => {
     const messageItems = renderedItems.filter(
       (item): item is Extract<ConversationItem, { kind: "message" }> =>
@@ -2130,6 +2163,27 @@ export const Messages = memo(function Messages({
     });
   }, [renderedItems]);
   const hasAnchorRail = showMessageAnchors && messageAnchors.length > 1;
+  const computeActiveHistoryStickyMessageId = useCallback(
+    (candidates: HistoryStickyCandidate[]) => {
+      const container = containerRef.current;
+      if (!container || candidates.length === 0) {
+        return null;
+      }
+      const topBoundaryY = container.scrollTop;
+      let nextStickyId: string | null = null;
+      for (const candidate of candidates) {
+        const node = messageNodeByIdRef.current.get(candidate.id);
+        if (!node) {
+          continue;
+        }
+        if (node.offsetTop <= topBoundaryY) {
+          nextStickyId = candidate.id;
+        }
+      }
+      return nextStickyId;
+    },
+    [],
+  );
   const scheduleAnchorUpdate = useCallback(
     (reason: "scroll" | "sync") => {
       if (!hasAnchorRail) {
@@ -2163,6 +2217,43 @@ export const Messages = memo(function Messages({
     },
     [computeActiveAnchor, hasAnchorRail, messageAnchors, threadId],
   );
+  const scheduleHistoryStickyUpdate = useCallback(
+    (reason: "scroll" | "sync") => {
+      if (!historyStickyEnabled || historyStickyCandidates.length === 0) {
+        return;
+      }
+      if (historyStickyUpdateRafRef.current !== null) {
+        return;
+      }
+      historyStickyUpdateRafRef.current = window.requestAnimationFrame(() => {
+        historyStickyUpdateRafRef.current = null;
+        const stickyStartedAt =
+          typeof performance === "undefined" ? 0 : performance.now();
+        const nextStickyId = computeActiveHistoryStickyMessageId(historyStickyCandidates);
+        const elapsedMs =
+          typeof performance === "undefined"
+            ? 0
+            : performance.now() - stickyStartedAt;
+        if (elapsedMs >= MESSAGES_SLOW_ANCHOR_WARN_MS) {
+          logMessagesPerf("history-sticky.compute", {
+            ms: Number(elapsedMs.toFixed(2)),
+            reason,
+            candidateCount: historyStickyCandidates.length,
+            threadId,
+          });
+        }
+        setActiveHistoryStickyMessageId((previous) =>
+          previous === nextStickyId ? previous : nextStickyId,
+        );
+      });
+    },
+    [
+      computeActiveHistoryStickyMessageId,
+      historyStickyCandidates,
+      historyStickyEnabled,
+      threadId,
+    ],
+  );
   const updateAutoScroll = useCallback(() => {
     const container = containerRef.current;
     if (!container) {
@@ -2171,7 +2262,13 @@ export const Messages = memo(function Messages({
     const nearBottom = isNearBottom(container);
     autoScrollRef.current = liveAutoFollowEnabled ? true : nearBottom;
     scheduleAnchorUpdate("scroll");
-  }, [isNearBottom, liveAutoFollowEnabled, scheduleAnchorUpdate]);
+    scheduleHistoryStickyUpdate("scroll");
+  }, [
+    isNearBottom,
+    liveAutoFollowEnabled,
+    scheduleAnchorUpdate,
+    scheduleHistoryStickyUpdate,
+  ]);
   const clearTransientUiState = useCallback(() => {
     if (copyTimeoutRef.current) {
       window.clearTimeout(copyTimeoutRef.current);
@@ -2180,6 +2277,10 @@ export const Messages = memo(function Messages({
     if (anchorUpdateRafRef.current !== null) {
       window.cancelAnimationFrame(anchorUpdateRafRef.current);
       anchorUpdateRafRef.current = null;
+    }
+    if (historyStickyUpdateRafRef.current !== null) {
+      window.cancelAnimationFrame(historyStickyUpdateRafRef.current);
+      historyStickyUpdateRafRef.current = null;
     }
     if (planPanelFocusRafRef.current !== null) {
       window.cancelAnimationFrame(planPanelFocusRafRef.current);
@@ -2266,6 +2367,24 @@ export const Messages = memo(function Messages({
     }
     scheduleAnchorUpdate("sync");
   }, [hasAnchorRail, messageAnchors, scheduleAnchorUpdate, scrollKey, threadId]);
+
+  useEffect(() => {
+    if (!historyStickyEnabled || historyStickyCandidates.length === 0) {
+      if (historyStickyUpdateRafRef.current !== null) {
+        window.cancelAnimationFrame(historyStickyUpdateRafRef.current);
+        historyStickyUpdateRafRef.current = null;
+      }
+      setActiveHistoryStickyMessageId(null);
+      return;
+    }
+    scheduleHistoryStickyUpdate("sync");
+  }, [
+    historyStickyCandidates,
+    historyStickyEnabled,
+    scheduleHistoryStickyUpdate,
+    scrollKey,
+    threadId,
+  ]);
 
   const handleCopyMessage = useCallback(
     async (
@@ -2520,9 +2639,6 @@ export const Messages = memo(function Messages({
               item.id === latestLiveStickyUserMessageId
                 ? "messages-live-sticky-user-message"
                 : "",
-              historyStickyUserMessageIds.has(item.id)
-                ? "messages-history-sticky-user-message"
-                : "",
             ]
               .filter(Boolean)
               .join(" ") || undefined}
@@ -2745,6 +2861,23 @@ export const Messages = memo(function Messages({
         ref={containerRef}
         onScroll={updateAutoScroll}
       >
+        {activeHistoryStickyCandidate && (
+          <div
+            className="messages-history-sticky-header"
+            data-history-sticky-message-id={activeHistoryStickyCandidate.id}
+            aria-hidden="true"
+          >
+            <div className="messages-history-sticky-header-inner">
+              <div className="messages-history-sticky-header-content">
+                <div className="messages-history-sticky-header-bubble">
+                  <div className="messages-history-sticky-header-text">
+                    {activeHistoryStickyCandidate.text}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="messages-full">
           {visibleCollapsedHistoryItemCount > 0 && (
             <div
