@@ -373,3 +373,57 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 75: 归档历史吸顶用户气泡任务
+
+**Date**: 2026-04-21
+**Task**: 归档历史吸顶用户气泡任务
+**Branch**: `feature/f-v0.4.6`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 收口与 pin-history-user-question-bubble 对应的 Trellis task。
+- 将该任务从 active tasks 中移除，并保证不再作为 current task 参与后续上下文。
+
+主要改动:
+- 执行 python3 ./.trellis/scripts/task.py archive pin-history-user-question-bubble --no-commit。
+- 将任务目录迁移到 .trellis/tasks/archive/2026-04/04-21-pin-history-user-question-bubble。
+- archived task.json 保持 completed 状态，并补充实现说明、OpenSpec archive 路径、主 spec 路径与关键 commit 信息。
+- 清空当前任务指针，后续 get_context --mode record 不再把该任务识别为 current task。
+
+涉及模块:
+- .trellis/tasks/archive/2026-04/04-21-pin-history-user-question-bubble/task.json
+
+验证结果:
+- python3 ./.trellis/scripts/task.py list 显示 active tasks 中已无 04-21-pin-history-user-question-bubble
+- .trellis/.current-task 已清空
+- git diff --check -- .trellis/tasks 通过
+
+后续事项:
+- 当前历史 sticky 相关的 OpenSpec change 和 Trellis task 都已归档收口。
+- 工作区仍存在多项与本次收口无关的未提交改动，本次提交未包含这些内容。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `b5222086` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
