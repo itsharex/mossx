@@ -728,3 +728,66 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 81: 实现 Windows runtime churn 缓解方案
+
+**Date**: 2026-04-21
+**Task**: 实现 Windows runtime churn 缓解方案
+**Branch**: `feature/f-v0.4.6`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 任务目标
+围绕 mitigate-windows-codex-runtime-churn 的目标，收口 Windows 侧 Codex runtime churn、automatic recovery 风暴和 replacement 叠树风险，并同步补齐行为提案与工程留痕。
+
+## 主要改动
+- 收口 automatic recovery、restore、focus 与 thread list 触发的恢复入口，避免同一 workspace 被重复 connect 或重复拉起 runtime。
+- 拆分 startup 与 stale 语义，降低 Windows 启动慢被误判后进入 replacement 循环的概率。
+- 为 workspace session replacement 增加 rollback；predecessor terminate 失败时恢复旧 session 与 runtime row，并回收 replacement。
+- 扩展 runtime churn diagnostics 与 runtime pool 可观测性，保留真实 recovery source、replace reason 和最近的 churn 证据。
+- 将 runtime recovery tests 与 automatic runtime recovery hook 独立成模块，解决超 3000 行大文件治理风险。
+- 清理会阻塞 doctor:strict 的 legacy branding 残留，统一相关临时目录和前端事件标识。
+
+## 涉及模块
+- backend runtime/session: `src-tauri/src/runtime/mod.rs`, `src-tauri/src/codex/session_runtime.rs`, `src-tauri/src/shared/workspaces_core.rs`
+- backend diagnostics/console: `src-tauri/src/bin/cc_gui_daemon.rs`, `src-tauri/src/bin/cc_gui_daemon/daemon_state.rs`, `src-tauri/src/workspaces/commands.rs`
+- frontend hooks/runtime pool: `src/features/threads/hooks/*`, `src/features/workspaces/hooks/*`, `src/features/settings/components/settings-view/sections/RuntimePoolSection.tsx`
+- shared contract/i18n: `src/services/tauri.ts`, `src/types.ts`, `src/i18n/locales/en.part1.ts`, `src/i18n/locales/zh.part1.ts`
+- behavior spec: `openspec/changes/fix-codex-stalled-user-input-and-runtime-idle-mismatch/**`
+
+## 验证结果
+- `openspec validate fix-codex-stalled-user-input-and-runtime-idle-mismatch --strict` 通过
+- `npm run lint` 通过（0 error，保留仓库既有 warnings）
+- `npm run typecheck` 通过
+- `npm run check:runtime-contracts` 通过
+- `npm run doctor:strict` 通过
+- `npm run check:large-files:gate` 通过
+- `npx vitest run src/features/composer/components/ChatInputBox/selectors/ModeSelect.test.tsx src/features/threads/hooks/useThreadActions.test.tsx src/features/workspaces/hooks/useWorkspaceRestore.test.tsx src/features/workspaces/hooks/useWorkspaceRefreshOnFocus.test.tsx` 通过
+- `cargo test --manifest-path src-tauri/Cargo.toml` 通过
+
+## 后续事项
+- 可单独起一轮 warning burn-down，清理仓库既有的 ESLint `react-hooks/exhaustive-deps` 与 Rust `unused/dead_code` 存量告警。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `82c13965` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
