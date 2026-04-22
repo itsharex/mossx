@@ -233,3 +233,41 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 106: fix(notifications): 收紧运行时提示悬浮点右下角定位
+
+**Date**: 2026-04-22
+**Task**: fix(notifications): 收紧运行时提示悬浮点右下角定位
+**Branch**: `feature/v-0.4.7`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：将右下角运行时提示悬浮点进一步贴近窗口右下角。
+主要改动：调整 global-runtime-notice-dock-shell 的 right/bottom 定位偏移，从 20px 收紧到 4px，并保留 safe-area 计算。
+涉及模块：src/styles/global-runtime-notice-dock.css（notifications 全局悬浮提示样式）。
+验证结果：已检查业务提交仅包含该 CSS 文件 diff；未运行 lint/test，本次为纯样式定位微调。
+后续事项：如需更激进的贴边效果，可继续评估 0px + safe-area 或同步优化展开面板贴角展开体验。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `74fbc0bb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
