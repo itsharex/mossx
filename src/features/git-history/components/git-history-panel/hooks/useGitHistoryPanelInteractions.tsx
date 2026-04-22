@@ -42,7 +42,14 @@ export function useGitHistoryPanelInteractions(scope: any) {
       setFallbackGitRootsLoading(false);
       setFallbackGitRootsError(error instanceof Error ? error.message : String(error));
     }
-  }, [repositoryUnavailable, workspace]);
+  }, [
+    listGitRoots,
+    repositoryUnavailable,
+    setFallbackGitRoots,
+    setFallbackGitRootsError,
+    setFallbackGitRootsLoading,
+    workspace,
+  ]);
 
   useEffect(() => {
     if (!repositoryUnavailable || !workspace) {
@@ -52,7 +59,14 @@ export function useGitHistoryPanelInteractions(scope: any) {
       return;
     }
     void refreshFallbackGitRoots();
-  }, [refreshFallbackGitRoots, repositoryUnavailable, workspace]);
+  }, [
+    refreshFallbackGitRoots,
+    repositoryUnavailable,
+    setFallbackGitRoots,
+    setFallbackGitRootsError,
+    setFallbackGitRootsLoading,
+    workspace,
+  ]);
 
   const handleFallbackGitRootSelect = useCallback(
     async (relativeRoot: string) => {
@@ -80,13 +94,13 @@ export function useGitHistoryPanelInteractions(scope: any) {
 
   useEffect(() => {
     setWorkspaceSelectingId(null);
-  }, [workspace?.id]);
+  }, [setWorkspaceSelectingId, workspace?.id]);
 
   useEffect(() => {
     if (!repositoryUnavailable) {
       setFallbackSelectingRoot(null);
     }
-  }, [repositoryUnavailable]);
+  }, [repositoryUnavailable, setFallbackSelectingRoot]);
 
   const workspaceSelectingName = useMemo(() => {
     if (!workspaceSelectingId) {
@@ -132,7 +146,11 @@ export function useGitHistoryPanelInteractions(scope: any) {
       setWorkingTreeTotalAdditions(summary.totalAdditions);
       setWorkingTreeTotalDeletions(summary.totalDeletions);
     },
-    [],
+    [
+      setWorkingTreeChangedFiles,
+      setWorkingTreeTotalAdditions,
+      setWorkingTreeTotalDeletions,
+    ],
   );
   const handleToggleLocalScope = useCallback((scope: string) => {
     setExpandedLocalScopes((prev) => {
@@ -144,7 +162,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
       }
       return next;
     });
-  }, []);
+  }, [setExpandedLocalScopes]);
 
   const handleToggleRemoteScope = useCallback((scope: string) => {
     setExpandedRemoteScopes((prev) => {
@@ -156,7 +174,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
       }
       return next;
     });
-  }, []);
+  }, [setExpandedRemoteScopes]);
 
   const handleCheckoutBranch = useCallback(
     async (name: string) => {
@@ -168,7 +186,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
         setSelectedBranch(name);
       });
     },
-    [runOperation, workspaceId],
+    [checkoutGitBranch, runOperation, setSelectedBranch, workspaceId],
   );
 
   const handleCreateBranch = useCallback((sourceBranch?: string | null) => {
@@ -189,6 +207,9 @@ export function useGitHistoryPanelInteractions(scope: any) {
     createBranchSourceOptions,
     currentBranch,
     operationLoading,
+    setCreateBranchDialogOpen,
+    setCreateBranchName,
+    setCreateBranchSource,
     t,
     workspaceId,
   ]);
@@ -209,7 +230,18 @@ export function useGitHistoryPanelInteractions(scope: any) {
       setCreateBranchName("");
       setCreateBranchSource("");
     });
-  }, [createBranchName, createBranchSource, operationLoading, runOperation, workspaceId]);
+  }, [
+    createBranchName,
+    createBranchSource,
+    createGitBranchFromBranch,
+    operationLoading,
+    runOperation,
+    setCreateBranchDialogOpen,
+    setCreateBranchName,
+    setCreateBranchSource,
+    setSelectedBranch,
+    workspaceId,
+  ]);
 
   const applyCreatePrDefaults = useCallback((defaults: GitPrWorkflowDefaults) => {
     setCreatePrDefaults(defaults);
@@ -223,7 +255,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
       commentAfterCreate: true,
       commentBody: defaults.commentBody,
     });
-  }, []);
+  }, [setCreatePrDefaults, setCreatePrForm]);
 
   const handleCreatePrHeadRepositoryChange = useCallback((nextRepository: string) => {
     const { owner } = splitGitHubRepo(nextRepository);
@@ -231,7 +263,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
       ...previous,
       headOwner: owner || nextRepository.trim(),
     }));
-  }, []);
+  }, [setCreatePrForm, splitGitHubRepo]);
 
   const loadCreatePrCommitPreview = useCallback(async () => {
     if (!workspaceId || !createPrDialogOpen) {
@@ -427,7 +459,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
     } catch {
       setCreatePrCopiedPrUrl(false);
     }
-  }, [createPrResult?.prUrl]);
+  }, [createPrResult?.prUrl, setCreatePrCopiedPrUrl]);
 
   const handleCopyCreatePrRetryCommand = useCallback(async () => {
     const retryCommand = createPrResult?.retryCommand?.trim();
@@ -441,7 +473,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
     } catch {
       setCreatePrCopiedRetryCommand(false);
     }
-  }, [createPrResult?.retryCommand]);
+  }, [createPrResult?.retryCommand, setCreatePrCopiedRetryCommand]);
 
   const handleConfirmCreatePr = useCallback(async () => {
     if (!workspaceId || !createPrCanConfirm || createPrSubmitting) {
@@ -969,7 +1001,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
       await createGitBranchFromCommit(workspaceId, trimmed, targetSha);
       setSelectedBranch(trimmed);
     });
-  }, [runOperation, selectedCommitSha, t, workspaceId]);
+  }, [createGitBranchFromCommit, runOperation, selectedCommitSha, setSelectedBranch, t, workspaceId]);
 
   const handleDeleteBranch = useCallback(async (targetBranch?: string | null) => {
     const branchName = targetBranch ?? selectedBranch;
@@ -1065,10 +1097,12 @@ export function useGitHistoryPanelInteractions(scope: any) {
       setOperationLoading(null);
     }
   }, [
+    ask,
     clearOperationNotice,
     closeBranchContextMenu,
     createOperationErrorState,
     currentBranch,
+    deleteGitBranch,
     getOperationDisplayName,
     isBranchDeleteNotFullyMergedError,
     isBranchDeleteUsedByWorktreeError,
@@ -1076,6 +1110,8 @@ export function useGitHistoryPanelInteractions(scope: any) {
     promptForceDeleteDialog,
     refreshAll,
     selectedBranch,
+    setOperationLoading,
+    setSelectedBranch,
     showOperationNotice,
     t,
     workspaceId,
@@ -1094,14 +1130,24 @@ export function useGitHistoryPanelInteractions(scope: any) {
     setRenameBranchName(branchName);
     closeBranchContextMenu();
     setRenameBranchDialogOpen(true);
-  }, [closeBranchContextMenu, currentBranch, localBranches, operationLoading, selectedBranch, workspaceId]);
+  }, [
+    closeBranchContextMenu,
+    currentBranch,
+    localBranches,
+    operationLoading,
+    selectedBranch,
+    setRenameBranchDialogOpen,
+    setRenameBranchName,
+    setRenameBranchSource,
+    workspaceId,
+  ]);
 
   const closeRenameBranchDialog = useCallback(() => {
     if (renameBranchSubmitting) {
       return;
     }
     setRenameBranchDialogOpen(false);
-  }, [renameBranchSubmitting]);
+  }, [renameBranchSubmitting, setRenameBranchDialogOpen]);
 
   const handleRenameBranchConfirm = useCallback(async () => {
     if (!workspaceId || !renameBranchCanConfirm) {
@@ -1119,7 +1165,18 @@ export function useGitHistoryPanelInteractions(scope: any) {
       setRenameBranchSource("");
       setRenameBranchName("");
     });
-  }, [renameBranchCanConfirm, renameBranchNameTrimmed, renameBranchSource, runOperation, workspaceId]);
+  }, [
+    renameBranchCanConfirm,
+    renameBranchNameTrimmed,
+    renameBranchSource,
+    renameGitBranch,
+    runOperation,
+    setRenameBranchDialogOpen,
+    setRenameBranchName,
+    setRenameBranchSource,
+    setSelectedBranch,
+    workspaceId,
+  ]);
 
   const handleMergeBranch = useCallback(async (targetBranch?: string | null) => {
     const branchName = targetBranch ?? selectedBranch;
@@ -1140,7 +1197,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
     await runOperation("mergeBranch", async () => {
       await mergeGitBranch(workspaceId, branchName);
     });
-  }, [closeBranchContextMenu, runOperation, selectedBranch, t, workspaceId]);
+  }, [ask, closeBranchContextMenu, mergeGitBranch, runOperation, selectedBranch, t, workspaceId]);
 
   const handleCheckoutAndRebaseCurrent = useCallback(async (targetBranch: string) => {
     if (!workspaceId) {
@@ -1169,7 +1226,17 @@ export function useGitHistoryPanelInteractions(scope: any) {
       await rebaseGitBranch(workspaceId, current);
       setSelectedBranch(targetBranch);
     });
-  }, [closeBranchContextMenu, currentBranch, runOperation, t, workspaceId]);
+  }, [
+    ask,
+    checkoutGitBranch,
+    closeBranchContextMenu,
+    currentBranch,
+    rebaseGitBranch,
+    runOperation,
+    setSelectedBranch,
+    t,
+    workspaceId,
+  ]);
 
   const handleRebaseCurrentOntoBranch = useCallback(async (targetBranch: string) => {
     if (!workspaceId) {
@@ -1196,7 +1263,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
     await runOperation("rebaseBranch", async () => {
       await rebaseGitBranch(workspaceId, targetBranch);
     });
-  }, [closeBranchContextMenu, currentBranch, runOperation, t, workspaceId]);
+  }, [ask, closeBranchContextMenu, currentBranch, rebaseGitBranch, runOperation, t, workspaceId]);
 
   const handleShowDiffWithWorktree = useCallback(async (targetBranch: string) => {
     if (!workspaceId || !targetBranch) {
@@ -1568,7 +1635,7 @@ export function useGitHistoryPanelInteractions(scope: any) {
     setResetTargetSha(targetSha);
     setResetMode("mixed");
     setResetDialogOpen(true);
-  }, [selectedCommitSha]);
+  }, [selectedCommitSha, setResetDialogOpen, setResetMode, setResetTargetSha]);
 
   const handleConfirmResetCommit = useCallback(async () => {
     if (!workspaceId || !resetTargetSha) {
