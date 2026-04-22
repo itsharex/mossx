@@ -128,15 +128,18 @@ describe("layout swapped platform guard", () => {
     );
   });
 
-  it("keeps Windows Claude render mitigation scoped to desktop Windows messages shell", () => {
+  it("keeps Claude render-safe mitigation scoped to desktop messages shell", () => {
     expect(messagesCss).toMatch(
-      /\.app\.windows-desktop[\s\S]*\.messages-shell\.windows-claude-processing[\s\S]*\.working\.is-ingress[\s\S]*\.working-spinner\s*\{/,
+      /\.app\.windows-desktop[\s\S]*\.messages-shell\.claude-render-safe[\s\S]*\.working\.is-ingress[\s\S]*\.working-spinner\s*\{/,
     );
     expect(messagesCss).toMatch(
-      /\.app\.windows-desktop[\s\S]*\.messages-shell\.windows-claude-processing[\s\S]*\.message\s*\{/,
+      /\.app\.macos-desktop[\s\S]*\.messages-shell\.claude-render-safe[\s\S]*\.working\.is-ingress[\s\S]*\.working-spinner\s*\{/,
+    );
+    expect(messagesCss).toMatch(
+      /\.app\.(windows|macos)-desktop[\s\S]*\.messages-shell\.claude-render-safe[\s\S]*\.message\s*\{/,
     );
     expect(messagesCss).not.toMatch(
-      /(^|\n)\.messages-shell\.windows-claude-processing[\s\S]*\.working\.is-ingress[\s\S]*\.working-spinner\s*\{/m,
+      /(^|\n)\.messages-shell\.claude-render-safe[\s\S]*\.working\.is-ingress[\s\S]*\.working-spinner\s*\{/m,
     );
   });
 

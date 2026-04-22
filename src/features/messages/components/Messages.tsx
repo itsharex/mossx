@@ -20,7 +20,7 @@ import type {
   TurnPlan,
   WorkspaceInfo,
 } from "../../../types";
-import { isWindowsPlatform } from "../../../utils/platform";
+import { isMacPlatform, isWindowsPlatform } from "../../../utils/platform";
 import type { ConversationState } from "../../threads/contracts/conversationCurtainContracts";
 import { ApprovalToasts } from "../../app/components/ApprovalToasts";
 import { RequestUserInputMessage } from "../../app/components/RequestUserInputMessage";
@@ -212,7 +212,8 @@ export const Messages = memo(function Messages({
 }: MessagesProps) {
   const { t } = useTranslation();
   const isWindowsDesktop = useMemo(() => isWindowsPlatform(), []);
-  const isWorking = legacyIsThinking || isContextCompacting;
+  const isMacDesktop = useMemo(() => isMacPlatform(), []);
+  const legacyIsWorking = legacyIsThinking || isContextCompacting;
   const fallbackConversationState = useMemo<ConversationState>(
     () => ({
       items: legacyItems,
@@ -223,7 +224,7 @@ export const Messages = memo(function Messages({
         threadId: legacyThreadId ?? "",
         engine: toConversationEngine(legacyActiveEngine),
         activeTurnId: null,
-        isThinking: isWorking,
+        isThinking: legacyIsWorking,
         heartbeatPulse: legacyHeartbeatPulse,
         historyRestoredAtMs: null,
       },
@@ -235,7 +236,7 @@ export const Messages = memo(function Messages({
       legacyWorkspaceId,
       legacyThreadId,
       legacyActiveEngine,
-      isWorking,
+      legacyIsWorking,
       legacyHeartbeatPulse,
     ],
   );
@@ -257,6 +258,7 @@ export const Messages = memo(function Messages({
   const isThinking = conversationState
     ? effectiveState.meta.isThinking
     : legacyIsThinking;
+  const isWorking = isThinking || isContextCompacting;
   const heartbeatPulse = conversationState
     ? (effectiveState.meta.heartbeatPulse ?? legacyHeartbeatPulse ?? 0)
     : legacyHeartbeatPulse ?? 0;
@@ -825,8 +827,10 @@ export const Messages = memo(function Messages({
   const primaryWorkingLabel = isContextCompacting
     ? t("chat.contextDualViewCompacting")
     : approvalResumeWorkingLabel;
-  const enableWindowsClaudeRenderMitigation =
-    isWindowsDesktop && activeEngine === "claude" && isThinking;
+  const enableClaudeRenderSafeMode =
+    (isWindowsDesktop || isMacDesktop) &&
+    activeEngine === "claude" &&
+    isThinking;
 
   const visibleItems = useMemo(() => {
     const filtered = effectiveItems.filter((item) => {
@@ -1534,7 +1538,7 @@ export const Messages = memo(function Messages({
 
   return (
     <div
-      className={`messages-shell${hasAnchorRail ? " has-anchor-rail" : ""}${enableWindowsClaudeRenderMitigation ? " windows-claude-processing" : ""}`}
+      className={`messages-shell${hasAnchorRail ? " has-anchor-rail" : ""}${enableClaudeRenderSafeMode ? " claude-render-safe" : ""}`}
     >
       {hasAnchorRail && (
         <div

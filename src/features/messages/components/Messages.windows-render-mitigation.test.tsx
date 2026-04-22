@@ -5,10 +5,12 @@ import type { ConversationItem } from "../../../types";
 import type { ConversationState } from "../../threads/contracts/conversationCurtainContracts";
 
 const mocks = vi.hoisted(() => ({
+  isMacPlatform: vi.fn(),
   isWindowsPlatform: vi.fn(),
 }));
 
 vi.mock("../../../utils/platform", () => ({
+  isMacPlatform: mocks.isMacPlatform,
   isWindowsPlatform: mocks.isWindowsPlatform,
 }));
 
@@ -47,7 +49,7 @@ function renderMessages(options?: {
   );
 }
 
-describe("Messages windows render mitigation", () => {
+describe("Messages desktop render-safe mode", () => {
   beforeAll(() => {
     if (!HTMLElement.prototype.scrollIntoView) {
       HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -55,7 +57,9 @@ describe("Messages windows render mitigation", () => {
   });
 
   beforeEach(() => {
+    mocks.isMacPlatform.mockReset();
     mocks.isWindowsPlatform.mockReset();
+    mocks.isMacPlatform.mockReturnValue(false);
     mocks.isWindowsPlatform.mockReturnValue(false);
   });
 
@@ -63,22 +67,30 @@ describe("Messages windows render mitigation", () => {
     cleanup();
   });
 
-  it("adds mitigation class for Windows Claude live conversations", () => {
+  it("adds render-safe class for Windows Claude live conversations", () => {
     mocks.isWindowsPlatform.mockReturnValue(true);
 
     const { container } = renderMessages();
 
-    expect(container.firstElementChild?.className).toContain("windows-claude-processing");
+    expect(container.firstElementChild?.className).toContain("claude-render-safe");
   });
 
-  it("does not add mitigation class outside Windows desktop", () => {
+  it("adds render-safe class for macOS Claude live conversations", () => {
+    mocks.isMacPlatform.mockReturnValue(true);
+
     const { container } = renderMessages();
 
-    expect(container.firstElementChild?.className).not.toContain("windows-claude-processing");
+    expect(container.firstElementChild?.className).toContain("claude-render-safe");
+  });
+
+  it("does not add render-safe class outside supported desktop surfaces", () => {
+    const { container } = renderMessages();
+
+    expect(container.firstElementChild?.className).not.toContain("claude-render-safe");
   });
 
   it("uses normalized conversation state when prop thinking flag is stale", () => {
-    mocks.isWindowsPlatform.mockReturnValue(true);
+    mocks.isMacPlatform.mockReturnValue(true);
 
     const conversationState: ConversationState = {
       items: [],
@@ -100,16 +112,16 @@ describe("Messages windows render mitigation", () => {
       conversationState,
     });
 
-    expect(container.firstElementChild?.className).toContain("windows-claude-processing");
+    expect(container.firstElementChild?.className).toContain("claude-render-safe");
   });
 
-  it("does not add mitigation class for non-Claude engines on Windows", () => {
+  it("does not add render-safe class for non-Claude engines on desktop", () => {
     mocks.isWindowsPlatform.mockReturnValue(true);
 
     const { container } = renderMessages({
       activeEngine: "codex",
     });
 
-    expect(container.firstElementChild?.className).not.toContain("windows-claude-processing");
+    expect(container.firstElementChild?.className).not.toContain("claude-render-safe");
   });
 });

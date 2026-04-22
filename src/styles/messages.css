@@ -537,7 +537,11 @@
 }
 
 .app.windows-desktop
-  .messages-shell.windows-claude-processing
+  .messages-shell.claude-render-safe
+  .working.is-ingress
+  .working-spinner,
+.app.macos-desktop
+  .messages-shell.claude-render-safe
   .working.is-ingress
   .working-spinner {
   animation-duration: 1s;
@@ -547,11 +551,19 @@
 }
 
 .app.windows-desktop
-  .messages-shell.windows-claude-processing
+  .messages-shell.claude-render-safe
   .working.is-ingress
   .working-spinner::before,
 .app.windows-desktop
-  .messages-shell.windows-claude-processing
+  .messages-shell.claude-render-safe
+  .working.is-ingress
+  .working-spinner::after,
+.app.macos-desktop
+  .messages-shell.claude-render-safe
+  .working.is-ingress
+  .working-spinner::before,
+.app.macos-desktop
+  .messages-shell.claude-render-safe
   .working.is-ingress
   .working-spinner::after {
   animation: none;
@@ -729,7 +741,8 @@
   contain-intrinsic-block-size: auto 120px;
 }
 
-.app.windows-desktop .messages-shell.windows-claude-processing .message {
+.app.windows-desktop .messages-shell.claude-render-safe .message,
+.app.macos-desktop .messages-shell.claude-render-safe .message {
   content-visibility: visible;
 }
 
