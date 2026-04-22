@@ -9,6 +9,7 @@ import { AgentIcon } from "../../../components/AgentIcon";
 import type { ConversationItem, QueuedMessage } from "../../../types";
 import { DiffBlock } from "../../git/components/DiffBlock";
 import type { StreamActivityPhase } from "../../threads/hooks/useStreamActivityPhase";
+import type { StreamMitigationProfile } from "../../threads/utils/streamLatencyDiagnostics";
 import { ProxyStatusBadge } from "../../../components/ProxyStatusBadge";
 import { languageFromPath } from "../../../utils/syntax";
 import type { PresentationProfile } from "../presentation/presentationProfile";
@@ -78,6 +79,7 @@ type MessageRowProps = {
   codeBlockCopyUseModifier?: boolean;
   onOpenFileLink?: (path: string) => void;
   onOpenFileLinkMenu?: (event: React.MouseEvent, path: string) => void;
+  streamMitigationProfile?: StreamMitigationProfile | null;
 };
 
 type ReasoningRowProps = {
@@ -90,6 +92,7 @@ type ReasoningRowProps = {
   onToggle: (id: string) => void;
   onOpenFileLink?: (path: string) => void;
   onOpenFileLinkMenu?: (event: React.MouseEvent, path: string) => void;
+  streamMitigationProfile?: StreamMitigationProfile | null;
 };
 
 type ReviewRowProps = {
@@ -108,6 +111,8 @@ type ExploreRowProps = {
   isExpanded: boolean;
   onToggle: (id: string) => void;
 };
+
+const LIVE_ASSISTANT_MARKDOWN_THROTTLE_MS = 48;
 
 function areMessageImagesEqual(
   previous: Extract<ConversationItem, { kind: "message" }>["images"],
@@ -167,8 +172,29 @@ function areMessageRowPropsEqual(
     previous.onCopy === next.onCopy &&
     previous.codeBlockCopyUseModifier === next.codeBlockCopyUseModifier &&
     previous.onOpenFileLink === next.onOpenFileLink &&
-    previous.onOpenFileLinkMenu === next.onOpenFileLinkMenu
+    previous.onOpenFileLinkMenu === next.onOpenFileLinkMenu &&
+    previous.streamMitigationProfile === next.streamMitigationProfile
   );
+}
+
+function resolveAssistantMessageStreamingThrottleMs(
+  isStreaming: boolean,
+  mitigationProfile: StreamMitigationProfile | null | undefined,
+) {
+  if (!isStreaming) {
+    return 80;
+  }
+  return mitigationProfile?.messageStreamingThrottleMs ?? LIVE_ASSISTANT_MARKDOWN_THROTTLE_MS;
+}
+
+function resolveReasoningStreamingThrottleMs(
+  isLive: boolean,
+  mitigationProfile: StreamMitigationProfile | null | undefined,
+) {
+  if (!isLive) {
+    return 80;
+  }
+  return mitigationProfile?.reasoningStreamingThrottleMs ?? 180;
 }
 
 export const WorkingIndicator = memo(function WorkingIndicator({
@@ -328,6 +354,7 @@ export const MessageRow = memo(function MessageRow({
   codeBlockCopyUseModifier,
   onOpenFileLink,
   onOpenFileLinkMenu,
+  streamMitigationProfile = null,
 }: MessageRowProps) {
   const { t } = useTranslation();
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
@@ -530,7 +557,10 @@ export const MessageRow = memo(function MessageRow({
             workspaceId={workspaceId}
             codeBlockStyle="message"
             codeBlockCopyUseModifier={codeBlockCopyUseModifier}
-            streamingThrottleMs={isStreaming ? 0 : 80}
+            streamingThrottleMs={resolveAssistantMessageStreamingThrottleMs(
+              isStreaming,
+              streamMitigationProfile,
+            )}
             onOpenFileLink={onOpenFileLink}
             onOpenFileLinkMenu={onOpenFileLinkMenu}
           />
@@ -608,6 +638,7 @@ export const ReasoningRow = memo(function ReasoningRow({
   onToggle,
   onOpenFileLink,
   onOpenFileLinkMenu,
+  streamMitigationProfile = null,
 }: ReasoningRowProps) {
   const { t } = useTranslation();
   const { bodyText } = parsed;
@@ -658,7 +689,10 @@ export const ReasoningRow = memo(function ReasoningRow({
               className={`markdown reasoning-markdown${isLive ? " markdown-live-streaming" : ""}`}
               workspaceId={workspaceId}
               codeBlockStyle="message"
-              streamingThrottleMs={isLive ? 180 : 80}
+              streamingThrottleMs={resolveReasoningStreamingThrottleMs(
+                isLive,
+                streamMitigationProfile,
+              )}
               onOpenFileLink={onOpenFileLink}
               onOpenFileLinkMenu={onOpenFileLinkMenu}
             />

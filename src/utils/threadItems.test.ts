@@ -108,6 +108,33 @@ describe("threadItems", () => {
     }
   });
 
+  it("preserves inline code spans when normalizing fragmented assistant text", () => {
+    const item: ConversationItem = {
+      id: "msg-assistant-inline-code-normalize-1",
+      kind: "message",
+      role: "assistant",
+      text: [
+        "执行",
+        "命令：",
+        "`pnpm",
+        "run",
+        "lint`",
+        "完成",
+        "之后",
+        "把",
+        "执行结果",
+        "告诉我。",
+      ].join("\n\n"),
+    };
+    const normalized = normalizeItem(item);
+    expect(normalized.kind).toBe("message");
+    if (normalized.kind === "message") {
+      expect(normalized.text).toContain("`pnpm\n\nrun\n\nlint`");
+      expect(normalized.text).toContain("完成之后把执行结果告诉我。");
+      expect(normalized.text).not.toContain("pnpmrunlint");
+    }
+  });
+
   it("normalizes assistant no-content placeholders to empty text", () => {
     const item: ConversationItem = {
       id: "msg-assistant-empty-placeholder",

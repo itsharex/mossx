@@ -1,4 +1,5 @@
 import type { ConversationItem } from "../types";
+import { normalizeOutsideMarkdownCode } from "./markdownCodeRegions";
 import { normalizeAgentIcon } from "./agentIcons";
 import {
   formatCollabAgentStates,
@@ -1239,17 +1240,17 @@ function normalizeAssistantMessageText(text: string) {
     return text;
   }
   let normalized = stripClaudeApprovalResumeArtifacts(text);
-  normalized = collapseRepeatedAssistantParagraphBlocks(normalized);
-  normalized = collapseRepeatedAssistantFullText(normalized);
+  normalized = normalizeOutsideMarkdownCode(normalized, collapseRepeatedAssistantParagraphBlocks);
+  normalized = normalizeOutsideMarkdownCode(normalized, collapseRepeatedAssistantFullText);
   if (isLikelyFragmentedAssistantText(normalized)) {
-    normalized = normalizeAssistantFragmentedParagraphs(normalized);
-    normalized = normalizeAssistantFragmentedLines(normalized);
+    normalized = normalizeOutsideMarkdownCode(normalized, normalizeAssistantFragmentedParagraphs);
+    normalized = normalizeOutsideMarkdownCode(normalized, normalizeAssistantFragmentedLines);
   }
-  normalized = dedupeRepeatedAssistantSentences(normalized);
-  normalized = collapseNearDuplicateAssistantSentenceBlocks(normalized);
-  normalized = dedupeAdjacentAssistantParagraphs(normalized);
-  normalized = collapseRepeatedAssistantParagraphBlocks(normalized);
-  normalized = collapseRepeatedAssistantFullText(normalized);
+  normalized = normalizeOutsideMarkdownCode(normalized, dedupeRepeatedAssistantSentences);
+  normalized = normalizeOutsideMarkdownCode(normalized, collapseNearDuplicateAssistantSentenceBlocks);
+  normalized = normalizeOutsideMarkdownCode(normalized, dedupeAdjacentAssistantParagraphs);
+  normalized = normalizeOutsideMarkdownCode(normalized, collapseRepeatedAssistantParagraphBlocks);
+  normalized = normalizeOutsideMarkdownCode(normalized, collapseRepeatedAssistantFullText);
   return normalized.trim();
 }
 

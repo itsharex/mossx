@@ -1,4 +1,5 @@
 import type { ConversationItem } from "../../../types";
+import { getMarkdownInlineCodeInfo } from "../../../utils/markdownCodeRegions";
 
 function isUserMessageItem(
   item: ConversationItem | undefined,
@@ -644,6 +645,13 @@ export function mergeAgentMessageText(existing: string, delta: string) {
   }
   const compactExisting = compactComparableStreamingText(existing);
   const compactDelta = compactComparableStreamingText(normalizedDelta);
+  const existingInlineCode = getMarkdownInlineCodeInfo(existing);
+  const deltaInlineCode = getMarkdownInlineCodeInfo(normalizedDelta);
+  const hasInlineCodeMergeRisk =
+    existingInlineCode.hasInlineCode ||
+    deltaInlineCode.hasInlineCode ||
+    existingInlineCode.hasUnclosedInlineCode ||
+    deltaInlineCode.hasUnclosedInlineCode;
   if (compactExisting && compactDelta) {
     if (compactDelta === compactExisting) {
       return chooseReadableText(existing, normalizedDelta);
@@ -654,7 +662,11 @@ export function mergeAgentMessageText(existing: string, delta: string) {
     if (compactExisting.startsWith(compactDelta) && existing.length >= normalizedDelta.length) {
       return existing;
     }
-    if (compactDelta.includes(compactExisting) && normalizedDelta.length >= existing.length * 0.8) {
+    if (
+      !hasInlineCodeMergeRisk &&
+      compactDelta.includes(compactExisting) &&
+      normalizedDelta.length >= existing.length * 0.8
+    ) {
       const firstIndex = compactDelta.indexOf(compactExisting);
       const secondIndex = compactDelta.indexOf(
         compactExisting,
@@ -665,24 +677,26 @@ export function mergeAgentMessageText(existing: string, delta: string) {
       }
       return normalizedDelta;
     }
-    const minComparableLength = Math.min(compactDelta.length, compactExisting.length);
-    if (minComparableLength >= 24) {
-      const sharedComparablePrefix = sharedPrefixLength(compactExisting, compactDelta);
-      if (sharedComparablePrefix >= Math.floor(minComparableLength * 0.72)) {
-        return chooseReadableText(existing, normalizedDelta);
+    if (!hasInlineCodeMergeRisk) {
+      const minComparableLength = Math.min(compactDelta.length, compactExisting.length);
+      if (minComparableLength >= 24) {
+        const sharedComparablePrefix = sharedPrefixLength(compactExisting, compactDelta);
+        if (sharedComparablePrefix >= Math.floor(minComparableLength * 0.72)) {
+          return chooseReadableText(existing, normalizedDelta);
+        }
+        const existingTailAnchor = tailAnchor(compactExisting);
+        if (
+          sharedComparablePrefix >= 12 &&
+          existingTailAnchor.length >= 8 &&
+          compactDelta.includes(existingTailAnchor)
+        ) {
+          return chooseReadableText(existing, normalizedDelta);
+        }
       }
-      const existingTailAnchor = tailAnchor(compactExisting);
-      if (
-        sharedComparablePrefix >= 12 &&
-        existingTailAnchor.length >= 8 &&
-        compactDelta.includes(existingTailAnchor)
-      ) {
-        return chooseReadableText(existing, normalizedDelta);
+      const shiftedSnapshot = mergeShiftedSnapshot(existing, normalizedDelta);
+      if (shiftedSnapshot) {
+        return chooseReadableText(existing, shiftedSnapshot);
       }
-    }
-    const shiftedSnapshot = mergeShiftedSnapshot(existing, normalizedDelta);
-    if (shiftedSnapshot) {
-      return chooseReadableText(existing, shiftedSnapshot);
     }
   }
   return mergeStreamingText(existing, normalizedDelta);
