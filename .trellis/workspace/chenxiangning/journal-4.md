@@ -1353,3 +1353,54 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 126: 归档大文件治理 OpenSpec 变更
+
+**Date**: 2026-04-23
+**Task**: 归档大文件治理 OpenSpec 变更
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 归档本轮大文件治理相关的 OpenSpec change，完成 archive + spec sync 收尾。
+
+主要改动:
+- 归档 12 个 large-file-governance 相关 change 到 openspec/changes/archive/2026-04-22-*。
+- 同步主 specs，落入 large-file modularization governance 与各兼容性 spec。
+- 保留 upgrade-large-file-governance-policy-v2 的 archive warning：tasks.md 仍有 1 个未勾选任务，但 archive 已按 --yes 完成。
+
+涉及模块:
+- openspec/changes/archive/**
+- openspec/specs/**
+
+验证结果:
+- openspec archive <change> --yes 对 12 个目标 change 均执行成功。
+- git commit 已生成：39c78985 归档大文件治理 OpenSpec 变更。
+
+后续事项:
+- 下一步可按 warning inventory 分批清理 react-hooks/exhaustive-deps。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `39c78985` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
