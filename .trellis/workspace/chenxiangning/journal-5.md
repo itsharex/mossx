@@ -58,3 +58,71 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 138: 收敛 exhaustive-deps 尾部告警
+
+**Date**: 2026-04-23
+**Task**: 收敛 exhaustive-deps 尾部告警
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：处理仓库最后 6 条 `react-hooks/exhaustive-deps` warning，覆盖 files/git-history/kanban/layout/workspaces 叶子文件，并为这轮尾部治理建立 OpenSpec/Trellis 追踪。
+
+主要改动：
+- 新建 OpenSpec change `stabilize-exhaustive-deps-tail-warnings` 与对应 Trellis PRD，定义最后一轮 tail remediation。
+- 在 `FileTreePanel.tsx`、`useDetachedFileExplorerState.ts`、`TaskCreateModal.tsx`、`useLayoutNodes.tsx`、`WorktreePrompt.tsx` 中补齐剩余依赖。
+- 在 `GitHistoryPanelImpl.tsx` 中把 create-PR progress timer cleanup 改成 cleanup-safe helper，不再在 effect cleanup 中直接读 ref。
+- 将 tail tasks 中代码修复项标记完成，保留验证任务 pending。
+
+涉及模块：
+- `src/features/files/components/FileTreePanel.tsx`
+- `src/features/files/hooks/useDetachedFileExplorerState.ts`
+- `src/features/git-history/components/git-history-panel/components/GitHistoryPanelImpl.tsx`
+- `src/features/kanban/components/TaskCreateModal.tsx`
+- `src/features/layout/hooks/useLayoutNodes.tsx`
+- `src/features/workspaces/components/WorktreePrompt.tsx`
+- `openspec/changes/stabilize-exhaustive-deps-tail-warnings/**`
+- `.trellis/tasks/04-23-stabilize-exhaustive-deps-tail-warnings/prd.md`
+
+验证结果：
+- 仓库 `react-hooks/exhaustive-deps` warning：`6 -> 0`
+- `npm run lint` 通过（0 warnings, 0 errors）
+- `npm run typecheck` 通过
+- 通过的定向测试：
+  - `src/features/files/components/FileTreePanel.run.test.tsx`
+  - `src/features/files/components/FileTreePanel.detached.test.tsx`
+  - `src/features/files/hooks/useDetachedFileExplorerState.test.tsx`
+  - `src/features/git-history/components/GitHistoryPanel.test.tsx`
+  - `src/features/workspaces/components/WorktreePrompt.test.tsx`
+  - `src/features/workspaces/hooks/useWorktreePrompt.test.tsx`
+  - `src/features/kanban/components/TaskCreateModal.test.tsx -t "clears blocked reason when updating an edited task"`
+- 验证边界：`src/features/kanban/components/TaskCreateModal.test.tsx` 整文件独立运行仍会在 30 秒超时，因此本 change 暂未归档。
+
+后续事项：
+- 需要单独确认 `TaskCreateModal.test.tsx` 的整文件超时是否为既有测试问题，还是需要进一步调整 modal 初始化链。
+- 在该问题澄清前，`stabilize-exhaustive-deps-tail-warnings` 保持未归档状态。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `66661059` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

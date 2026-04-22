@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-5.md`
-- **Total Sessions**: 137
+- **Total Sessions**: 138
 - **Last Active**: 2026-04-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-5.md` | ~60 | Active |
+| `journal-5.md` | ~128 | Active |
 | `journal-4.md` | ~1975 | Archived |
 | `journal-3.md` | ~1972 | Archived |
 | `journal-2.md` | ~1960 | Archived |
@@ -33,6 +33,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 138 | 2026-04-23 | 收敛 exhaustive-deps 尾部告警 | `66661059` | `feature/v-0.4.8` |
 | 137 | 2026-04-23 | 归档 threads exhaustive-deps OpenSpec 变更 | `15deacbd` | `feature/v-0.4.8` |
 | 136 | 2026-04-23 | 收敛 threads exhaustive-deps 告警 | `01ae0e63` | `feature/v-0.4.8` |
 | 135 | 2026-04-23 | 归档 app-shell-parts exhaustive-deps OpenSpec 变更 | `dbd8fd50` | `feature/v-0.4.8` |
