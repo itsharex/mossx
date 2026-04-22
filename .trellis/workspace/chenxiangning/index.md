@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-3.md`
-- **Total Sessions**: 95
+- **Total Sessions**: 96
 - **Last Active**: 2026-04-22
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-3.md` | ~1627 | Active |
+| `journal-3.md` | ~1688 | Active |
 | `journal-2.md` | ~1960 | Archived |
 | `journal-1.md` | ~1990 | Archived |
 <!-- @@@/auto:active-documents -->
@@ -31,6 +31,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 96 | 2026-04-22 | OpenSpec 归档六个已完成 change 并回写提案状态 | `708ddc6f77d28abf4dac91b602178d2e52667280` | `feature/v-0.4.7` |
 | 95 | 2026-04-22 | 增强运行时提示与融合续跑收口 | `292147259ed56c835ffefb2c5556b2185ddea4f0` | `feature/v-0.4.7` |
 | 94 | 2026-04-22 | Checkpoint fusion stalled continuity | `486cf0388c6fd9dadc1836d3650e05cea50e87fd` | `feature/v-0.4.7` |
 | 93 | 2026-04-22 | 完善会话恢复 toast 链路并修复边界问题 | `01632817` | `feature/v-0.4.7` |

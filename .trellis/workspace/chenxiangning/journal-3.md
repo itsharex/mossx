@@ -1625,3 +1625,64 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 96: OpenSpec 归档六个已完成 change 并回写提案状态
+
+**Date**: 2026-04-22
+**Task**: OpenSpec 归档六个已完成 change 并回写提案状态
+**Branch**: `feature/v-0.4.7`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 盘点当前未归档 OpenSpec change，基于代码核对 proposal/tasks/spec 的真实完成状态。
+- 将已完成 change 同步到主 specs 并归档，同时保留未完成 change 的提案基线。
+
+主要改动:
+- 回写 3 个仍在进行中的 proposal 代码核对状态：claude-code-mode-progressive-rollout、add-codex-structured-launch-profile、project-memory-refactor。
+- 归档 6 个已完成 change：fix-codex-fusion-stalled-continuity、add-global-runtime-notice-dock、add-create-session-recovery-toast-action、align-live-sticky-with-history-header、fix-codex-session-create-shutdown-race、fix-history-expansion-scroll-restoration。
+- 同步主 specs，并处理两处 delta/main spec header drift：conversation-runtime-stability、conversation-live-user-bubble-pinning。
+- 新增/更新主 spec capability：global-runtime-notice-dock、conversation-history-expansion-scroll-restoration，以及相关 runtime/collaboration capabilities。
+
+涉及模块:
+- openspec/changes/**
+- openspec/changes/archive/**
+- openspec/specs/**
+- .trellis/workspace/chenxiangning/**
+
+验证结果:
+- openspec validate claude-code-mode-progressive-rollout --type change --strict --no-interactive
+- openspec validate add-codex-structured-launch-profile --type change --strict --no-interactive
+- openspec validate project-memory-refactor --type change --strict --no-interactive
+- openspec archive -y <change> 成功归档 6 个已完成 change
+- git diff --check 通过
+- openspec list 归档后仅剩 3 个活动 change
+
+后续事项:
+- claude-code-mode-progressive-rollout 继续收口 E.1.c / E.3 / V.4。
+- add-codex-structured-launch-profile 仍待 preview contract 与 settings UI 实现。
+- project-memory-refactor 仍待 Batch A 契约冻结，尚未进入 V2 实现。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `708ddc6f77d28abf4dac91b602178d2e52667280` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
