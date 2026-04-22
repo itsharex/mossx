@@ -1,8 +1,11 @@
-// @ts-nocheck
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { Dispatch, MutableRefObject, RefObject, SetStateAction } from "react";
 import { useComposerInsert } from "../features/app/hooks/useComposerInsert";
 import { loadHistoryWithImportance } from "../features/composer/hooks/useInputHistoryStore";
+import type { HistoryItem } from "../features/composer/hooks/useInputHistoryStore";
+import type { KanbanTask } from "../features/kanban/types";
 import { useUnifiedSearch } from "../features/search/hooks/useUnifiedSearch";
+import type { SearchContentFilter, SearchScope } from "../features/search/types";
 import { useWorkspaceSessionActivity } from "../features/session-activity/hooks/useWorkspaceSessionActivity";
 import { useSessionRadarFeed } from "../features/session-activity/hooks/useSessionRadarFeed";
 import {
@@ -11,12 +14,21 @@ import {
   buildRadarCompletionId,
   dispatchSessionRadarHistoryUpdatedEvent,
   mergePersistedRadarRecentEntries,
+  type PersistedRadarRecentEntry,
   resolveLatestUserMessage,
 } from "../features/session-activity/utils/sessionRadarPersistence";
 import { useWorkspaceSessionProjectionSummary } from "../features/workspaces/hooks/useWorkspaceSessionProjectionSummary";
 import { getClientStoreSync, writeClientStoreValue } from "../services/clientStorage";
 import { sendSystemNotification } from "../services/systemNotification";
 import { getWorkspaceFiles } from "../services/tauri";
+import type {
+  AppSettings,
+  ConversationItem,
+  CustomCommandOption,
+  SkillOption,
+  ThreadSummary,
+  WorkspaceInfo,
+} from "../types";
 import { useWorkspaceThreadListHydration } from "./useWorkspaceThreadListHydration";
 import {
   LOCK_LIVE_SESSION_LIMIT,
@@ -26,6 +38,81 @@ import {
 
 const INVISIBLE_SEARCH_QUERY_CHARS_REGEX = /[\u200B-\u200D\uFEFF]/g;
 const RECENT_THREAD_LIMIT = 8;
+
+type FilePanelMode =
+  | "git"
+  | "files"
+  | "search"
+  | "prompts"
+  | "memory"
+  | "activity"
+  | "radar";
+
+type Translator = (key: string) => string;
+
+type ThreadStatusSnapshot = {
+  isProcessing?: boolean;
+  isReviewing?: boolean;
+  lastDurationMs?: number | null;
+};
+
+type LastAgentMessageSnapshot = {
+  text: string;
+  timestamp: number;
+};
+
+type CompletionTrackerSnapshot = {
+  isProcessing: boolean;
+  lastDurationMs: number | null;
+  lastAgentTimestamp: number;
+};
+
+type ListThreadsForWorkspace = (
+  workspace: WorkspaceInfo,
+  options?: {
+    preserveState?: boolean;
+    includeOpenCodeSessions?: boolean;
+  },
+) => Promise<void>;
+
+type UseAppShellSearchRadarSectionOptions = {
+  activeDraft: string;
+  activeItems: ConversationItem[];
+  activeThreadId: string | null;
+  activeWorkspace: WorkspaceInfo | null;
+  activeWorkspaceId: string | null;
+  appSettings: AppSettings;
+  commands: CustomCommandOption[];
+  composerInputRef: RefObject<HTMLTextAreaElement | null>;
+  completionTrackerBySessionRef: MutableRefObject<Record<string, CompletionTrackerSnapshot>>;
+  completionTrackerReadyRef: MutableRefObject<boolean>;
+  directories: string[];
+  filePanelMode: FilePanelMode;
+  files: string[];
+  globalSearchFilesByWorkspace: Record<string, string[]>;
+  handleDraftChange: (next: string) => void;
+  isCompact: boolean;
+  isFilesLoading: boolean;
+  isProcessing: boolean;
+  isSearchPaletteOpen: boolean;
+  kanbanTasks: KanbanTask[];
+  lastAgentMessageByThread: Record<string, LastAgentMessageSnapshot | undefined>;
+  listThreadsForWorkspace: ListThreadsForWorkspace;
+  rightPanelCollapsed: boolean;
+  searchContentFilters: SearchContentFilter[];
+  searchPaletteQuery: string;
+  searchScope: SearchScope;
+  setGlobalSearchFilesByWorkspace: Dispatch<SetStateAction<Record<string, string[]>>>;
+  skills: SkillOption[];
+  t: Translator;
+  threadItemsByThread: Record<string, ConversationItem[]>;
+  threadListLoadingByWorkspace: Record<string, boolean>;
+  threadParentById: Record<string, string>;
+  threadStatusById: Record<string, ThreadStatusSnapshot | undefined>;
+  threadsByWorkspace: Record<string, ThreadSummary[]>;
+  workspaces: WorkspaceInfo[];
+  workspacesById: Map<string, WorkspaceInfo>;
+};
 
 export function useAppShellSearchRadarSection({
   activeDraft,
@@ -64,7 +151,7 @@ export function useAppShellSearchRadarSection({
   threadsByWorkspace,
   workspaces,
   workspacesById,
-}: any) {
+}: UseAppShellSearchRadarSectionOptions) {
   const handleInsertComposerText = useComposerInsert({
     activeThreadId,
     draftText: activeDraft,
@@ -79,14 +166,7 @@ export function useAppShellSearchRadarSection({
     filesLoading: false,
     files: 0,
     directories: 0,
-    filePanelMode: "git" as
-      | "git"
-      | "files"
-      | "search"
-      | "prompts"
-      | "memory"
-      | "activity"
-      | "radar",
+    filePanelMode: "git" as FilePanelMode,
     rightPanelCollapsed: false,
     isCompact: false,
     draftLength: 0,
@@ -337,7 +417,7 @@ export function useAppShellSearchRadarSection({
     () => (searchScope === "global" ? kanbanTasks : activeWorkspaceKanbanTasks),
     [activeWorkspaceKanbanTasks, kanbanTasks, searchScope],
   );
-  const historySearchItems = useMemo(
+  const historySearchItems = useMemo<HistoryItem[]>(
     () => (isSearchPaletteOpen ? loadHistoryWithImportance() : []),
     [isSearchPaletteOpen],
   );
@@ -377,8 +457,8 @@ export function useAppShellSearchRadarSection({
 
   useEffect(() => {
     const previous = completionTrackerBySessionRef.current;
-    const next = {};
-    const completed = [];
+    const next: Record<string, CompletionTrackerSnapshot> = {};
+    const completed: PersistedRadarRecentEntry[] = [];
 
     for (const workspace of workspaces) {
       const threads = threadsByWorkspace[workspace.id] ?? [];

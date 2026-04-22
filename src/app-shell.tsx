@@ -45,6 +45,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { homeDir } from "@tauri-apps/api/path";
 import { isMacPlatform, isWindowsPlatform } from "./utils/platform";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { writeClientStoreValue } from "./services/clientStorage";
 import {
   SidebarCollapseButton,
   TitlebarExpandControls,
