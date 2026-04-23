@@ -756,3 +756,63 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 150: 修复 Linux AppImage Wayland 启动兼容守卫
+
+**Date**: 2026-04-23
+**Task**: 修复 Linux AppImage Wayland 启动兼容守卫
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 针对 GitHub issue #379 中 Linux Wayland AppImage 启动阶段 WebKitGTK/Wry EGL 初始化失败的问题，落地可回退的 Linux-only 启动兼容守卫。
+
+主要改动:
+- 新增 OpenSpec change fix-linux-appimage-wayland-startup，补齐 proposal/design/spec/tasks，并把 heavy-test-noise-sentry 与 large-file-governance workflow 作为 guardrail 写入提案。
+- 新增 Trellis task 04-23-fix-linux-appimage-wayland-startup，关联 OpenSpec change 与本次修复目标。
+- 新增 src-tauri/src/linux_startup_guard.rs，只在 Linux + Wayland + AppImage 高风险上下文启用 fallback。
+- 在第一层设置 WEBKIT_DISABLE_DMABUF_RENDERER=1，保留用户已有环境变量；一次 renderer-ready 前失败后，第二层追加 WEBKIT_DISABLE_COMPOSITING_MODE=1。
+- 复用 bootstrap_mark_renderer_ready 清零 Linux guard 状态，macOS 与 Windows 正常链路不改语义。
+
+涉及模块:
+- src-tauri/src/linux_startup_guard.rs
+- src-tauri/src/lib.rs
+- src-tauri/src/startup_guard.rs
+- openspec/changes/fix-linux-appimage-wayland-startup/**
+- .trellis/tasks/04-23-fix-linux-appimage-wayland-startup/**
+
+验证结果:
+- cargo test --manifest-path src-tauri/Cargo.toml linux_startup_guard -- --nocapture
+- cargo test --manifest-path src-tauri/Cargo.toml
+- npm run lint
+- npm run typecheck
+- npm run check:large-files
+- npm run check:heavy-test-noise
+
+后续事项:
+- 仍缺真实 Linux + Wayland + AppImage 实机验收；若用户继续反馈，应优先收集终端日志与 ~/.ccgui/linux_startup_guard.json。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a77dd3d8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
