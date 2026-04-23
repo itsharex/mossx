@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-5.md`
-- **Total Sessions**: 144
+- **Total Sessions**: 145
 - **Last Active**: 2026-04-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-5.md` | ~483 | Active |
+| `journal-5.md` | ~537 | Active |
 | `journal-4.md` | ~1975 | Archived |
 | `journal-3.md` | ~1972 | Archived |
 | `journal-2.md` | ~1960 | Archived |
@@ -33,6 +33,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 145 | 2026-04-23 | 修正 heavy-test-noise 环境告警统计 | `48ac9bee` | `feature/v-0.4.8` |
 | 144 | 2026-04-23 | 增加 heavy test 噪音 CI 门禁 | `bf288c25` | `feature/v-0.4.8` |
 | 143 | 2026-04-23 | 清理 heavy 回归测试噪音并归档变更 | `4b08630546a7088e7075d17a85f42d1558171c66` | `feature/v-0.4.8` |
 | 142 | 2026-04-23 | 清理 Rust test-target 告警面 | `30b3680f` | `feature/v-0.4.8` |

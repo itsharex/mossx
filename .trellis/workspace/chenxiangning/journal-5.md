@@ -481,3 +481,57 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 145: 修正 heavy-test-noise 环境告警统计
+
+**Date**: 2026-04-23
+**Task**: 修正 heavy-test-noise 环境告警统计
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标:
+- 补齐 heavy-test-noise 在 npm 启动场景下的 environment warning 统计语义，使 summary 与控制台观察一致。
+
+主要改动:
+- 更新 scripts/check-heavy-test-noise.mjs，在 analyzeHeavyTestNoise() 中额外读取 npm 注入的环境 hint。
+- 新增 ENVIRONMENT_WARNING_HINTS，对 npm_config_electron_mirror / npm_config_electron-mirror 做 environment-owned warning 映射。
+- 对 environment warning 做去重，避免 env hint 与日志文本重复时双计数。
+- 更新 scripts/check-heavy-test-noise.test.mjs，补充 npm env metadata 场景与去重场景测试。
+
+涉及模块:
+- scripts/check-heavy-test-noise.mjs
+- scripts/check-heavy-test-noise.test.mjs
+
+验证结果:
+- node --test scripts/check-heavy-test-noise.test.mjs 通过，5 个测试全绿。
+- npm exec -- node scripts/check-heavy-test-noise.mjs --input .artifacts/heavy-test-noise.log --mode report 输出 environment warnings: 1。
+- npm run lint 通过。
+
+后续事项:
+- 这次修复不改变 heavy-test-noise 的 fail/pass 语义，只补齐 environment-owned warning 的统计准确性。
+- 如果后续 environment allowlist 扩充，需要同步补 parser tests，避免报表语义再次漂移。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `48ac9bee` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
