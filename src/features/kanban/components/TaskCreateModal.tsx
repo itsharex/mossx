@@ -93,7 +93,13 @@ export function TaskCreateModal({
   const { t, i18n } = useTranslation();
   const titleRef = useRef<HTMLInputElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
-  const inlineCompletion = useInlineHistoryCompletion();
+  const {
+    applySuggestion: applyInlineCompletion,
+    clear: clearInlineCompletion,
+    hasSuggestion: hasInlineSuggestion,
+    suffix: inlineCompletionSuffix,
+    updateQuery: updateInlineCompletionQuery,
+  } = useInlineHistoryCompletion();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -244,12 +250,12 @@ export function TaskCreateModal({
       setPreviousTaskId("");
     }
     setFormError(null);
-    inlineCompletion.clear();
+    clearInlineCompletion();
     const focusTimer = window.setTimeout(() => titleRef.current?.focus(), 50);
     return () => {
       window.clearTimeout(focusTimer);
     };
-  }, [defaultStatus, editingTask, inlineCompletion, isOpen, panelId]);
+  }, [clearInlineCompletion, defaultStatus, editingTask, isOpen, panelId]);
 
   useEffect(() => {
     if (!isOpen || availableEngines.length === 0) {
@@ -291,7 +297,7 @@ export function TaskCreateModal({
     if (trimmedDesc) {
       recordInputHistory(trimmedDesc);
     }
-    inlineCompletion.clear();
+    clearInlineCompletion();
 
     const nextStatus = editingTask?.status ?? (autoStart ? "inprogress" : "todo");
     if (nextStatus !== "todo" && scheduleMode !== "manual") {
@@ -411,9 +417,9 @@ export function TaskCreateModal({
   const handleDescriptionChange = useCallback(
     (next: string) => {
       setDescription(next);
-      inlineCompletion.updateQuery(next);
+      updateInlineCompletionQuery(next);
     },
-    [inlineCompletion],
+    [updateInlineCompletionQuery],
   );
 
   const handleDescKeyDown = useCallback(
@@ -421,10 +427,10 @@ export function TaskCreateModal({
       if (
         e.key === "Tab" &&
         !e.shiftKey &&
-        inlineCompletion.hasSuggestion
+        hasInlineSuggestion
       ) {
         e.preventDefault();
-        const fullText = inlineCompletion.applySuggestion();
+        const fullText = applyInlineCompletion();
         if (fullText) {
           setDescription(fullText);
           requestAnimationFrame(() => {
@@ -436,7 +442,7 @@ export function TaskCreateModal({
         }
       }
     },
-    [inlineCompletion],
+    [applyInlineCompletion, hasInlineSuggestion],
   );
 
   const handleCancel = () => {
@@ -447,7 +453,7 @@ export function TaskCreateModal({
         clearTaskDraft(panelId);
       }
     }
-    inlineCompletion.clear();
+    clearInlineCompletion();
     onCancel();
   };
 
@@ -499,7 +505,7 @@ export function TaskCreateModal({
               className="kanban-rich-input"
               textareaRef={descTextareaRef}
               onKeyDown={handleDescKeyDown}
-              ghostTextSuffix={inlineCompletion.suffix}
+              ghostTextSuffix={inlineCompletionSuffix}
               footerLeft={
                 <>
                   <button
