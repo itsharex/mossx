@@ -943,3 +943,71 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 153: 归档 Computer Use 阶段2并创建宿主契约调查提案
+
+**Date**: 2026-04-23
+**Task**: 归档 Computer Use 阶段2并创建宿主契约调查提案
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 任务目标
+
+- 归档已完成的 OpenSpec change `add-codex-computer-use-activation-bridge`。
+- 创建下一阶段 OpenSpec change `investigate-computer-use-helper-host-contract`。
+- 将阶段2已完成的 delta specs 同步到主 specs，并提交中文 Conventional Commit。
+
+## 主要改动
+
+- 归档 `openspec/changes/add-codex-computer-use-activation-bridge` 到 `openspec/changes/archive/2026-04-23-add-codex-computer-use-activation-bridge`。
+- 新增 `openspec/changes/investigate-computer-use-helper-host-contract`，包含 proposal、design、delta specs、tasks。
+- 新增 capability `computer-use-helper-host-contract`，明确 macOS host-contract diagnostics 只能显式触发、只读采证、禁止 direct exec 已知会触发 crash report 的 nested helper。
+- 修改 activation lane、platform adapter、plugin bridge 的下一阶段边界：Windows 继续 unsupported，不进入 conversation runtime integration，不复制/重签/修改官方资产。
+- 同步主 specs：`codex-computer-use-plugin-bridge`、`computer-use-availability-surface`、`computer-use-platform-adapter`、`computer-use-activation-lane`。
+
+## 涉及模块
+
+- `openspec/changes/archive/2026-04-23-add-codex-computer-use-activation-bridge/**`
+- `openspec/changes/investigate-computer-use-helper-host-contract/**`
+- `openspec/specs/codex-computer-use-plugin-bridge/spec.md`
+- `openspec/specs/computer-use-availability-surface/spec.md`
+- `openspec/specs/computer-use-platform-adapter/spec.md`
+- `openspec/specs/computer-use-activation-lane/spec.md`
+
+## 验证结果
+
+- `openspec list --json`：旧 change 已不在 active list，新 change 处于 in-progress。
+- `test -d openspec/changes/archive/2026-04-23-add-codex-computer-use-activation-bridge && test ! -d openspec/changes/add-codex-computer-use-activation-bridge`：通过。
+- `openspec validate investigate-computer-use-helper-host-contract --type change --strict --no-interactive`：通过。
+- `git diff --check`：通过。
+
+## 后续事项
+
+- 下一步 apply `investigate-computer-use-helper-host-contract`。
+- 实现优先级：backend result types 与 Tauri command、macOS diagnostics provider、禁止 direct exec nested helper 的 regression test、frontend CTA 与 evidence rendering。
+- Phase 2.5 仍只做 diagnostics/evidence gate，不进入 runtime integration。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `039d8b2d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
