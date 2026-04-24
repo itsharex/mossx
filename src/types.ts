@@ -226,6 +226,47 @@ export type ComputerUseBridgeStatus = {
   helperDescriptorPath: string | null;
   marketplacePath: string | null;
   diagnosticMessage: string | null;
+  authorizationContinuity: ComputerUseAuthorizationContinuityStatus;
+};
+
+export type ComputerUseAuthorizationBackendMode = "local" | "remote";
+
+export type ComputerUseAuthorizationHostRole =
+  | "foreground_app"
+  | "daemon"
+  | "debug_binary"
+  | "unknown";
+
+export type ComputerUseAuthorizationLaunchMode =
+  | "packaged_app"
+  | "daemon"
+  | "debug"
+  | "unknown";
+
+export type ComputerUseAuthorizationContinuityKind =
+  | "unknown"
+  | "no_successful_host"
+  | "matching_host"
+  | "host_drift_detected"
+  | "unsupported_context";
+
+export type ComputerUseAuthorizationHostSnapshot = {
+  displayName: string;
+  executablePath: string;
+  identifier: string | null;
+  teamIdentifier: string | null;
+  backendMode: ComputerUseAuthorizationBackendMode;
+  hostRole: ComputerUseAuthorizationHostRole;
+  launchMode: ComputerUseAuthorizationLaunchMode;
+  signingSummary: string | null;
+};
+
+export type ComputerUseAuthorizationContinuityStatus = {
+  kind: ComputerUseAuthorizationContinuityKind;
+  diagnosticMessage: string | null;
+  currentHost: ComputerUseAuthorizationHostSnapshot | null;
+  lastSuccessfulHost: ComputerUseAuthorizationHostSnapshot | null;
+  driftFields: string[];
 };
 
 export type ComputerUseActivationOutcome = "verified" | "blocked" | "failed";
@@ -317,6 +358,7 @@ export type ComputerUseBrokerFailureKind =
   | "unsupported_platform"
   | "bridge_unavailable"
   | "bridge_blocked"
+  | "authorization_continuity_blocked"
   | "workspace_missing"
   | "codex_runtime_unavailable"
   | "already_running"
