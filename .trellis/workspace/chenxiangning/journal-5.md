@@ -1827,3 +1827,66 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 169: 修复 Claude 空白幕布与终态重复
+
+**Date**: 2026-04-24
+**Task**: 修复 Claude 空白幕布与终态重复
+**Branch**: `feature/v-0.4.8`
+
+### Summary
+
+交付 Claude 白屏恢复、sidebar truth parity 和 completed output duplication 修复，并补齐 OpenSpec 变更与回归验证。
+
+### Main Changes
+
+任务目标
+- 收敛 Claude 第 2 轮及之后的空白幕布问题。
+- 修复 Claude sidebar 会话显示与真实 session 状态不一致、删除 not found 后残留 ghost entry 的问题。
+- 修复 Claude completed 最后一跳把已流出的 Markdown 前缀和完整正文一起重放，导致终态大段重复的问题。
+
+主要改动
+- 在 Messages / streamLatencyDiagnostics 上新增 repeat-turn blanking diagnostics 与 recovery path，保证空幕布时仍保留可读 surface。
+- 在 Claude reopen / delete 路径增加 authoritative reconcile，避免 stale session 被继续当成正常会话。
+- 在 threadReducerTextMerge 的 completed merge 增加 leading replay collapse，收敛 `prefix + full snapshot` 形态的 terminal duplication。
+- 新增并落盘三个 OpenSpec changes：fix-claude-repeat-turn-blanking、fix-claude-session-sidebar-state-parity、fix-claude-completed-output-duplication。
+
+涉及模块
+- src/features/messages/components/Messages.tsx
+- src/features/threads/hooks/useThreadActions.ts
+- src/features/threads/hooks/useThreads.ts
+- src/features/threads/utils/streamLatencyDiagnostics.ts
+- src/features/threads/hooks/threadReducerTextMerge.ts
+- 对应 Vitest 回归测试与 OpenSpec artifacts
+
+验证结果
+- openspec validate fix-claude-repeat-turn-blanking --type change --strict --no-interactive
+- openspec validate fix-claude-session-sidebar-state-parity --type change --strict --no-interactive
+- openspec validate fix-claude-completed-output-duplication --type change --strict --no-interactive
+- npm exec vitest run src/features/threads/hooks/threadReducerTextMerge.test.ts src/features/threads/hooks/useThreadsReducer.completed-duplicate.test.ts src/features/threads/hooks/useThreadsReducer.test.ts src/features/threads/hooks/useThreads.memory-race.integration.test.tsx
+- npm run typecheck
+- 用户在 macOS 上针对 Claude 实时对话复现场景自测反馈“目前还行没什么问题”。
+
+后续事项
+- 下一步需要基于本次提交打包 Windows 版本，继续验证 native Claude Code 的 streaming / blanking / completed duplication 路径。
+- 当前工作树仍有两个未纳入本次提交的旧脏文件：openspec/changes/fix-claude-long-markdown-progressive-reveal/tasks.md、openspec/changes/fix-claude-windows-streaming-visibility-stall/tasks.md。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4b44af80` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
