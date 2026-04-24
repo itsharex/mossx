@@ -449,3 +449,63 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 179: 修复 Codex 生成图片展示与占位链路
+
+**Date**: 2026-04-25
+**Task**: 修复 Codex 生成图片展示与占位链路
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+补齐 Codex 生成图片从意图、实时事件、历史回放到最终卡片的完整链路，修复无反馈、重复预览和生成中无占位等问题。
+
+### Main Changes
+
+### 任务目标
+- 修复 Codex 图片生成在前端无反馈、只显示 Encrypted reasoning、重复坏图预览、第二张图展示异常的问题。
+- 为图片生成补齐 processing 占位态，保证用户在作图开始时就能看到专属卡片，而不是只有通用 spinner。
+- 收敛 generated image 的历史回放、实时事件、乐观占位与最终回填链路，避免第二次生成时占位丢失或串位。
+
+### 主要改动
+- 在 `src/utils/threadItems.ts`、`src/features/threads/loaders/codexSessionHistory.ts`、`src/features/threads/adapters/sharedRealtimeAdapter.ts` 中补齐 native `image_generation_call` / `image_generation_end` 到 `generatedImage` 的归一化映射。
+- 新增 `src/utils/generatedImageArtifacts.ts`，统一解析 `saved_path`、`base64`、`revised_prompt` 等图片产物，修复单卡片重复预览与坏图占位。
+- 在 `src/features/threads/hooks/useThreadItemEvents.ts`、`src/features/threads/hooks/useThreadsReducer.ts`、`src/features/threads/utils/generatedImagePlaceholder*.ts` 中实现基于 assistant commentary 的 optimistic 图片占位、精确匹配回填与 turn 终态清理。
+- 调整 `src/features/messages/components/MessagesRows.tsx`、`MessagesTimeline.tsx`、`messagesRenderUtils.ts`、`src/styles/messages.part1.css`，让 generated image 卡片在 processing/completed 两种状态下都能稳定渲染。
+- 修正 `.codex/hooks/session-start.py`，避免首轮图片请求被 active task 提示错误打断。
+- 新增 `openspec/changes/fix-codex-generated-image-turn-linkage/`，把本次行为修复与契约约束落到 OpenSpec。
+
+### 涉及模块
+- frontend messages / threads realtime adapter / history loader / reducer / CSS
+- Codex session-start hook
+- OpenSpec behavior change
+
+### 验证结果
+- [OK] `npx vitest run src/features/app/hooks/useAppServerEvents.test.tsx src/features/threads/adapters/realtimeAdapters.test.ts src/features/threads/hooks/useThreadItemEvents.test.ts src/features/threads/hooks/useThreadsReducer.generatedImage.test.ts src/features/threads/hooks/useThreadTurnEvents.test.tsx src/utils/threadItems.test.ts src/features/threads/loaders/historyLoaders.test.ts`
+- [OK] `npm run typecheck`
+- [OK] `npm run check:large-files`
+- [OK] 本地人工复测：完成态图片可展示，重复坏图问题已消失；processing 占位链路已补 optimistic 逻辑，等待继续观察真实运行时行为。
+
+### 后续事项
+- 继续观察不同 runtime 是否都会先输出 `imagegen` commentary；若存在无 commentary 也无原生 start event 的 provider，需要再补一层更早的图片意图信号。
+- 如果后续还要优化体验，可以给 processing 图片卡补更明确的 skeleton / shimmer。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `44907b6c` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
