@@ -246,3 +246,69 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 176: 拆分 Git selective commit、queued bubble 与 Computer Use continuity
+
+**Date**: 2026-04-25
+**Task**: 拆分 Git selective commit、queued bubble 与 Computer Use continuity
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+完成 Git selective commit、Codex queued handoff bubble continuity 与 Computer Use authorization continuity 三组改动并拆分提交。
+
+### Main Changes
+
+- 任务目标：
+  1. 为 Git diff/worktree 提交链路增加按文件范围提交能力，并避免批量 stage/unstage 能力回退。
+  2. 修复 Codex queued follow-up 在 optimistic bubble 与历史 reconcile 之间的可见性断裂与重复渲染。
+  3. 为 Computer Use status surface 增加 authorization continuity 识别，并收紧跨平台 broker / diagnostics 边界。
+- 主要改动：
+  1. Git：新增 commit scope/inclusion/section actions 子模块；更新 useGitCommitController；调整 GitHistoryWorktreePanel 提交门禁；补充样式与测试；同步 add-git-selective-commit OpenSpec。
+  2. Threads：新增 queuedHandoffBubble 工具；在 useQueuedSend/useThreads/reducer 中接入 direct thread send、TTL 清理、history reconcile 去重；透传 activeQueuedHandoffBubble 到 app shell/layout；同步 queued-user-bubble-gap OpenSpec 与 Trellis task。
+  3. Computer Use：新增 Rust authorization_continuity store 和 host snapshot 判定；扩展 broker failure kind；更新 frontend types/tauri mapping/status card/i18n；同步 computer-use bridge spec、OpenSpec 与 Trellis task。
+- 涉及模块：
+  - src/features/git/**
+  - src/features/git-history/**
+  - src/features/app/hooks/useGitCommitController*
+  - src/features/threads/**
+  - src/features/layout/hooks/useLayoutNodes.tsx
+  - src/features/computer-use/**
+  - src-tauri/src/computer_use/**
+  - src/services/tauri*
+  - src/types.ts
+  - src/i18n/locales/*.part1.ts
+  - openspec/changes/*
+  - .trellis/spec/**
+  - .trellis/tasks/**
+- 验证结果：
+  - [OK] npm exec vitest run src/features/git/components/GitDiffPanel.test.tsx src/features/computer-use/components/ComputerUseStatusCard.test.tsx
+  - [OK] npm exec vitest run src/features/threads/hooks/useQueuedSend.test.tsx src/features/threads/hooks/useThreads.memory-race.integration.test.tsx src/features/threads/utils/queuedHandoffBubble.test.ts src/features/app/hooks/useGitCommitController.test.tsx src/features/git-history/components/GitHistoryWorktreePanel.test.tsx src/services/tauri.test.ts
+  - [OK] cargo test --manifest-path src-tauri/Cargo.toml computer_use::
+  - [OK] npm run typecheck
+  - [OK] npm run lint
+  - [OK] npm run check:large-files:near-threshold
+- 后续事项：
+  - 当前工作区仍保留未跟踪草稿目录 openspec/changes/fix-codex-generated-image-turn-linkage/，本次未纳入提交。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3c8df523` | (see git log) |
+| `58db55b0` | (see git log) |
+| `ef17894b` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
