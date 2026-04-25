@@ -644,3 +644,64 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 182: 图片生成幕布链路收口与边界修复
+
+**Date**: 2026-04-26
+**Task**: 图片生成幕布链路收口与边界修复
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：对当前工作区进行全面 review，重点检查图片生成幕布链路的边界条件、large-file/告警门禁，以及 Windows/macOS 兼容性；发现问题后直接修复并提交。
+
+主要改动：
+- 修复 normalized realtime 下 optimistic user 被真实 user 替换时 generatedImage anchor 未同步重定向的问题。
+- 修复 codex raw imagegen pending 上下文未带 workspaceId 的隔离缺陷，避免跨 workspace 串 prompt / 串结果。
+- 收口图片生成 processing placeholder 相关链路，并补齐 adapter / assembler / reducer 侧回归测试。
+- 将 optimistic user reconciliation 纯 helper 从 useThreadsReducer.ts 抽到 threadReducerOptimisticUserReconciliation.ts，解除 large-file hard gate。
+
+涉及模块：
+- src/features/app/hooks/useAppServerEvents.ts
+- src/features/threads/adapters/sharedRealtimeAdapter.ts
+- src/features/threads/assembly/conversationAssembler.ts
+- src/features/threads/hooks/useThreadMessaging.ts
+- src/features/threads/hooks/useThreadsReducer.ts
+- src/features/threads/hooks/threadReducerOptimisticUserReconciliation.ts
+- 对应测试文件与 generated image placeholder utils
+
+验证结果：
+- npx vitest run src/features/threads/adapters/realtimeAdapters.test.ts src/features/threads/contracts/conversationAssembler.test.ts src/features/threads/hooks/useThreadsReducer.normalized-realtime.test.ts 通过
+- npm run check:large-files:near-threshold 通过（watchlist 有告警但无 gate 失败）
+- npm run check:large-files:gate 通过
+- node --test scripts/check-heavy-test-noise.test.mjs 通过
+- npm run check:heavy-test-noise 通过
+- npm run lint 通过
+- npm run typecheck 通过
+
+后续事项：
+- 后续若继续优化图片生成幕布，优先补跨 workspace + 首轮自然语言出图的 integration test，避免再次回归到 assistant 文案猜测路径。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `86f2a752` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
