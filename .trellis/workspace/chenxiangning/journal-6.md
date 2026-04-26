@@ -1045,3 +1045,61 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 189: 统一 Explored 与文件变更卡片样式
+
+**Date**: 2026-04-27
+**Task**: 统一 Explored 与文件变更卡片样式
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：
+- 根据人工视觉反馈，统一消息流中 Explored 卡片与 File changes 卡片的折叠、展开视觉节奏。
+- 保持现有行为不漂移：Explored 仍可自动折叠/展开，File changes 仍保留 diff 预览与文件跳转能力。
+
+主要改动：
+- 将 completed Explored 卡片折叠态归一化为单行摘要：标题中展示第一条 explore entry，例如 `Explored · Read package.json`。
+- 让单条和多条 Explored 使用同一套 collapsible 交互；单条折叠态也可以点击展开，展开后恢复列表详情。
+- 移除旧的半折叠 `explore-inline-list.is-collapsed` 视觉规则，统一通过 `is-inline-summary` 隐藏列表并做单行 ellipsis。
+- 为 File changes 折叠态与展开态增加轻量化样式：紧凑 header、小圆角、展开态去重卡片外壳，并收紧 diff preview 外层间距。
+- 为 file-change 展开态增加 `tool-change-expanded-card` class，避免用 stack-entry selector 误打真实 DOM。
+
+涉及模块：
+- `src/features/messages/components/MessagesRows.tsx`
+- `src/features/messages/components/Messages.explore.test.tsx`
+- `src/features/messages/components/toolBlocks/GenericToolBlock.tsx`
+- `src/styles/messages.part1.css`
+- `src/styles/tool-blocks.css`
+
+验证结果：
+- 通过：`npx vitest run src/features/messages/components/Messages.explore.test.tsx src/features/messages/components/toolBlocks/GenericToolBlock.test.tsx`
+- 通过：`npm run typecheck`
+- 通过：`npm run check:large-files`
+
+后续事项：
+- 视觉类变更仍建议人工在实际消息流中复核像素效果，尤其是 File changes 展开态 diff viewer 的内层行高与滚动体验。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `dcd1dd99` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
