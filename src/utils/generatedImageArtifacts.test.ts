@@ -68,4 +68,25 @@ describe("generatedImageArtifacts", () => {
       "C:/Users/demo/Codex Images/generated image.png",
     );
   });
+
+  it("preserves UNC hosts from windows file urls", () => {
+    const artifact = resolveGeneratedImageArtifact(
+      "completed",
+      {
+        prompt: "A shared drive screenshot",
+      },
+      {
+        saved_path: "file://server/share/Codex%20Images/generated%20image.png",
+      },
+    );
+
+    expect(artifact.status).toBe("completed");
+    expect(artifact.images).toHaveLength(1);
+    expect(artifact.images[0]?.src).toBe(
+      "asset://localhost//server/share/Codex Images/generated image.png",
+    );
+    expect(artifact.images[0]?.localPath).toBe(
+      "//server/share/Codex Images/generated image.png",
+    );
+  });
 });

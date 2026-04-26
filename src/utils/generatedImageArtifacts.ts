@@ -148,7 +148,8 @@ function toImageLocalPath(rawPath: string): string {
   }
   if (decoded.startsWith("file://")) {
     const withoutScheme = decoded.slice("file://".length);
-    const withoutHost = withoutScheme.startsWith("localhost/")
+    const isLocalhostFileUrl = withoutScheme.startsWith("localhost/");
+    const withoutHost = isLocalhostFileUrl
       ? withoutScheme.slice("localhost/".length)
       : withoutScheme;
     if (/^\/[A-Za-z]:[\\/]/.test(withoutHost)) {
@@ -160,7 +161,7 @@ function toImageLocalPath(rawPath: string): string {
     if (withoutHost.startsWith("/")) {
       return withoutHost;
     }
-    return `/${withoutHost}`;
+    return isLocalhostFileUrl ? `/${withoutHost}` : `//${withoutHost}`;
   }
   if (
     decoded.startsWith("/") ||
