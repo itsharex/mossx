@@ -36,12 +36,12 @@ use super::remote_bridge::{
 use super::status::{detect_gemini_status, detect_opencode_status};
 use super::{EngineConfig, EngineStatus, EngineType};
 
+#[path = "commands_opencode.rs"]
+mod commands_opencode;
 #[path = "commands_opencode_helpers.rs"]
 mod opencode_helpers;
 #[path = "commands_parse_helpers.rs"]
 mod parse_helpers;
-#[path = "commands_opencode.rs"]
-mod commands_opencode;
 pub use commands_opencode::*;
 use opencode_helpers::*;
 use parse_helpers::*;
@@ -1276,17 +1276,15 @@ pub async fn engine_send_message(
 
                     // Emit event with CURRENT thread_id (for SessionStarted, this is the OLD pending id)
                     // Frontend uses this to rename claude-pending-xxx to claude:{sessionId}
-                    if let Some(payload) =
-                        engine_event_to_app_server_event(
+                    if let Some(payload) = engine_event_to_app_server_event(
+                        &event,
+                        &current_thread_id,
+                        resolve_claude_realtime_item_id(
                             &event,
-                            &current_thread_id,
-                            resolve_claude_realtime_item_id(
-                                &event,
-                                &assistant_item_id_clone,
-                                &reasoning_item_id_clone,
-                            ),
-                        )
-                    {
+                            &assistant_item_id_clone,
+                            &reasoning_item_id_clone,
+                        ),
+                    ) {
                         let _ = app_clone.emit("app-server-event", payload);
                     }
 
