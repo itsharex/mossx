@@ -1644,3 +1644,56 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 199: 修复 VendorSettingsPanel unified_exec 提示测试竞态
+
+**Date**: 2026-04-27
+**Task**: 修复 VendorSettingsPanel unified_exec 提示测试竞态
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+修复 CI 中 VendorSettingsPanel unified_exec 成功提示断言偶发失败
+
+### Main Changes
+
+任务目标：
+- 处理 heavy-test-noise-sentry workflow 在 CI 第 84 批暴露的 VendorSettingsPanel 测试失败。
+- 保持本次业务提交原子化，只包含测试修复文件。
+
+主要改动：
+- 将 restore official default 成功提示断言从同步 getByText 改为 await findByText。
+- 将 enable official unified_exec 成功提示断言同样改为 await findByText，消除同类 async render race。
+- 对目标测试文件执行 Prettier 格式化。
+
+涉及模块：
+- frontend vendors settings tests：src/features/vendors/components/VendorSettingsPanel.test.tsx
+
+验证结果：
+- npx vitest run src/features/vendors/components/VendorSettingsPanel.test.tsx：通过，5/5 tests。
+- npm run check:heavy-test-noise：通过，370 test files completed；第 84 批 VendorSettingsPanel.test.tsx 通过。
+- heavy-test-noise summary：act warnings 0，stdout payload lines 0，stderr payload lines 0。
+- npx prettier --check src/features/vendors/components/VendorSettingsPanel.test.tsx：通过。
+
+后续事项：
+- 当前工作区仍有既有 Rust/OpenSpec 未提交改动，本次提交未纳入。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0c1b87b91dc81dddbc7d354d6dd6f9d55aef02eb` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
