@@ -1821,3 +1821,72 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 202: 归档运行时 OpenSpec 提案
+
+**Date**: 2026-04-27
+**Task**: 归档运行时 OpenSpec 提案
+**Branch**: `feature/v0.4.9`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+任务目标：
+- 基于当前代码实现核查截图中的 OpenSpec 提案完成度。
+- 将已由代码满足的任务状态回写到 OpenSpec artifacts。
+- 将已完成的运行时相关 change 同步到主 specs 并归档。
+- 按仓库提交规则创建中文 Conventional Commit。
+
+主要改动：
+- 回写 `fix-claude-windows-streaming-latency` 的 wrapper / resolved binary / runtime row diagnostics 任务证据，使该 change 达到 complete。
+- 回写 `fix-windows-runtime-pool-initial-load` 的 `runtime-panel-bootstrap` recovery source 观测链路任务证据，同时保留 Windows cold launch 人工验证项未关闭。
+- 同步 `fix-claude-windows-streaming-latency` 的 delta specs 到主 specs，新增 `claude-code-stream-forwarding-latency` capability，并补充 stream latency diagnostics 与 runtime pool console 契约。
+- 同步 `fix-codex-runtime-lifecycle-recovery` 的 delta specs 到主 specs，补充 runtime orchestrator、runtime stability、long-task protection、runtime pool console 契约。
+- 归档两个已完成 change：`fix-claude-windows-streaming-latency` 与 `fix-codex-runtime-lifecycle-recovery`。
+
+涉及模块：
+- `openspec/changes/archive/2026-04-27-fix-claude-windows-streaming-latency/`
+- `openspec/changes/archive/2026-04-27-fix-codex-runtime-lifecycle-recovery/`
+- `openspec/specs/claude-code-stream-forwarding-latency/spec.md`
+- `openspec/specs/conversation-stream-latency-diagnostics/spec.md`
+- `openspec/specs/runtime-pool-console/spec.md`
+- `openspec/specs/runtime-orchestrator/spec.md`
+- `openspec/specs/codex-long-task-runtime-protection/spec.md`
+- `openspec/specs/conversation-runtime-stability/spec.md`
+- `openspec/changes/fix-windows-runtime-pool-initial-load/tasks.md`
+
+验证结果：
+- `openspec validate fix-claude-windows-streaming-latency --strict` 通过。
+- `openspec validate fix-codex-runtime-lifecycle-recovery --strict` 通过。
+- `openspec validate --specs --strict --no-interactive` 通过：190 passed, 0 failed。
+- `openspec validate --changes --strict --no-interactive` 通过：6 passed, 0 failed。
+- `openspec validate --all --strict --no-interactive` 通过：196 passed, 0 failed。
+
+后续事项：
+- `fix-windows-runtime-pool-initial-load` 仍需 Windows cold launch 人工验证。
+- `fix-claude-long-thread-render-amplification` 仍需 long-thread / compaction / macOS/non-Claude 人工矩阵。
+- `fix-linux-nix-flake-packaging` 仍需 Nix-capable host 执行 Nix packaging validation。
+- 未提交新出现的未跟踪 change 目录：`openspec/changes/fix-codex-stale-thread-manual-recovery/`。
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `9007e01a` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
